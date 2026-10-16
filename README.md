@@ -7,9 +7,10 @@ A small, keyboard-first to-do window for macOS. It floats above other apps, live
 ```bash
 scripts/make-app.sh          # builds build/Todo.app and installs it to ~/Applications
 open ~/Applications/Todo.app
+scripts/test.sh              # runs the unit tests
 ```
 
-You only need the Command Line Tools (`xcode-select --install`). Xcode and an Apple Developer account aren't required. Run the tests with `swift test`.
+You only need the Command Line Tools (`xcode-select --install`). Xcode and an Apple Developer account aren't required. Run the tests with `scripts/test.sh` rather than plain `swift test`. With only the Command Line Tools, `swift test` can't find the Swift Testing macros ("plugin for module 'TestingMacros' not found"), so the script points the compiler at them. It passes any extra arguments through, e.g. `scripts/test.sh --filter StoreTests`.
 
 ## Using it
 
