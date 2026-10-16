@@ -103,20 +103,9 @@ struct HomeView: View {
             .padding(.horizontal, 14)
             .padding(.bottom, 12)
         } else {
-            let total = store.todayOpen.count + store.todayDone.count
-            let doneCount = store.todayDone.count
-            VStack(spacing: 6) {
-                HStack {
-                    Text("Today")
-                    Spacer()
-                    Text("\(doneCount) of \(total) done")
-                }
-                .font(Theme.mono(11.5))
-                .foregroundStyle(Theme.muted)
-                ProgressBar(fraction: total == 0 ? 0 : Double(doneCount) / Double(total))
-            }
-            .padding(.horizontal, 14)
-            .padding(.bottom, 12)
+            TodayPill(done: store.todayDone.count, total: store.todayOpen.count + store.todayDone.count)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
         }
     }
 
@@ -145,6 +134,42 @@ struct HomeView: View {
         default: return .ignored
         }
         return .handled
+    }
+}
+
+/// Today's progress as a pill that fills from the left, with the count on top.
+/// A thin accent edge marks where the fill ends while the day is in progress.
+struct TodayPill: View {
+    let done: Int
+    let total: Int
+
+    var body: some View {
+        let fraction = total == 0 ? 0 : Double(done) / Double(total)
+        HStack {
+            Text("Today")
+            Spacer()
+            Text("\(done) of \(total) done")
+        }
+        .font(Theme.mono(11.5))
+        .foregroundStyle(Theme.ink2)
+        .padding(.horizontal, 10)
+        .frame(height: 30)
+        .background {
+            GeometryReader { geo in
+                let width = geo.size.width * fraction
+                ZStack(alignment: .leading) {
+                    Theme.surface
+                    Theme.accentSoft.frame(width: width)
+                    Theme.accent
+                        .frame(width: 2)
+                        .offset(x: max(0, width - 2))
+                        .opacity(fraction > 0 && fraction < 1 ? 1 : 0)
+                }
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.border))
+        .animation(.spring(response: 0.5, dampingFraction: 1), value: fraction)
     }
 }
 
