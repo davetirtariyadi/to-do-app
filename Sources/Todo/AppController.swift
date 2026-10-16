@@ -19,6 +19,13 @@ final class AppController: ObservableObject {
         }
     }
 
+    @Published var appearance: Appearance {
+        didSet {
+            UserDefaults.standard.set(appearance.rawValue, forKey: "appearance")
+            NSApp.appearance = appearance.nsAppearance
+        }
+    }
+
     @Published private(set) var launchAtLogin: Bool
 
     init() {
@@ -26,10 +33,12 @@ final class AppController: ObservableObject {
         let override = ProcessInfo.processInfo.environment["TODO_DATA_FILE"]
         store = Store(url: override.map { URL(fileURLWithPath: $0) } ?? Store.defaultURL())
         pinned = UserDefaults.standard.object(forKey: "pinned") as? Bool ?? true
+        appearance = UserDefaults.standard.string(forKey: "appearance").flatMap(Appearance.init) ?? .system
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }
 
     func setUp() {
+        NSApp.appearance = appearance.nsAppearance
         let panel = FloatingPanel(size: Self.windowSize)
         let root = RootView()
             .environmentObject(self)
@@ -120,6 +129,5 @@ struct RootView: View {
         .frame(width: AppController.windowSize.width, height: AppController.windowSize.height)
         .background(Theme.ground)
         .foregroundStyle(Theme.ink)
-        .environment(\.colorScheme, .light)
     }
 }

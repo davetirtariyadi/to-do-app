@@ -68,7 +68,7 @@ struct GroupsView: View {
             }
 
             if let name = deleting {
-                Color.black.opacity(0.06)
+                Theme.scrim
                 deleteCard(name)
             }
         }
@@ -193,7 +193,7 @@ struct GroupsView: View {
                 RoundedRectangle(cornerRadius: 12).fill(Theme.surface)
                     .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
             )
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "#C9CED6")))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.stroke))
             .onTapGesture { confirmDelete() }
         } else {
             GroupChoiceCard(

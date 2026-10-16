@@ -60,6 +60,9 @@ struct MenuContent: View {
         Button("Manage groups…") { controller.show(.groups) }
         Divider()
         Toggle("Keep on top", isOn: $controller.pinned)
+        Picker("Appearance", selection: $controller.appearance) {
+            ForEach(Appearance.allCases) { Text($0.label).tag($0) }
+        }
         Toggle("Launch at login", isOn: Binding(
             get: { controller.launchAtLogin },
             set: { controller.setLaunchAtLogin($0) }

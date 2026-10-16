@@ -113,7 +113,7 @@ struct AddView: View {
             .padding(.horizontal, 12)
             .frame(height: 40)
             .background(RoundedRectangle(cornerRadius: 9).fill(Theme.surface))
-            .overlay(fieldRing(.title, idle: Color(hex: "#B9BFC9"), radius: 9))
+            .overlay(fieldRing(.title, idle: Theme.dim, radius: 9))
             .focused($focus, equals: .title)
             .onKeyPress(.return, phases: .down) { press in
                 if press.modifiers.contains(.command) { return .ignored }
@@ -165,7 +165,7 @@ struct AddView: View {
                 .fill(Theme.surface)
                 .shadow(color: .black.opacity(0.14), radius: 10, y: 6)
         )
-        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color(hex: "#C9CED6")))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.stroke))
     }
 
     private var newGroupField: some View {
@@ -203,7 +203,7 @@ struct AddView: View {
         .padding(.horizontal, 10)
         .frame(height: 34)
         .background(RoundedRectangle(cornerRadius: 7).fill(onToday ? Theme.sunSoft : Theme.surface))
-        .overlay(fieldRing(.today, idle: onToday ? Color(hex: "#F0C48E") : Color(hex: "#C9CED6"), radius: 7))
+        .overlay(fieldRing(.today, idle: onToday ? Theme.sunLine : Theme.stroke, radius: 7))
         .contentShape(Rectangle())
         .focusable()
         .focused($focus, equals: .today)
@@ -222,10 +222,10 @@ struct AddView: View {
         let ready = !title.trimmingCharacters(in: .whitespaces).isEmpty
         return Text("Add")
             .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(Theme.onAccent)
             .frame(maxWidth: .infinity)
             .frame(height: 40)
-            .background(RoundedRectangle(cornerRadius: 9).fill(ready ? Theme.accent : Color(hex: "#9DB0E2")))
+            .background(RoundedRectangle(cornerRadius: 9).fill(ready ? Theme.accent : Theme.accentDisabled))
             .overlay(
                 RoundedRectangle(cornerRadius: 11)
                     .stroke(focus == .add ? Theme.accent : .clear, lineWidth: 2)
@@ -255,7 +255,7 @@ struct AddView: View {
         .padding(.horizontal, 10)
         .frame(width: width, height: 34)
         .background(RoundedRectangle(cornerRadius: 7).fill(Theme.surface))
-        .overlay(fieldRing(field, idle: isSet ? Theme.faint : Color(hex: "#C9CED6"), radius: 7))
+        .overlay(fieldRing(field, idle: isSet ? Theme.faint : Theme.stroke, radius: 7))
         .contentShape(Rectangle())
         .focusable()
         .focused($focus, equals: field)

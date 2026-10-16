@@ -103,7 +103,7 @@ struct CatchUpView: View {
             HStack {
                 Button(action: undo) {
                     Text("Z undo").font(Theme.mono(11))
-                        .foregroundStyle(history.isEmpty ? Color(hex: "#A9AEB8") : Theme.ink2)
+                        .foregroundStyle(history.isEmpty ? Theme.disabled : Theme.ink2)
                 }
                 .buttonStyle(.plain)
                 .disabled(history.isEmpty)
@@ -125,13 +125,13 @@ struct CatchUpView: View {
                 Text(key)
                     .font(Theme.mono(11, .medium))
                     .padding(.horizontal, 5)
-                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(filled ? Color(hex: "#8FA6E0") : Color(hex: "#C9CED6")))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(filled ? Theme.onAccentLine : Theme.stroke))
             }
-            .foregroundStyle(filled ? .white : Theme.ink)
+            .foregroundStyle(filled ? Theme.onAccent : Theme.ink)
             .frame(maxWidth: .infinity)
             .frame(height: 40)
             .background(RoundedRectangle(cornerRadius: 9).fill(filled ? Theme.accent : Theme.surface))
-            .overlay(RoundedRectangle(cornerRadius: 9).stroke(filled ? .clear : Color(hex: "#C9CED6")))
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(filled ? .clear : Theme.stroke))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -142,7 +142,7 @@ struct CatchUpView: View {
             Spacer()
             Image(systemName: "checkmark")
                 .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.onAccent)
                 .frame(width: 40, height: 40)
                 .background(Circle().fill(Theme.accent))
             Text("You’re all caught up").font(.system(size: 16, weight: .semibold))
@@ -177,11 +177,11 @@ struct CatchUpView: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 13, weight: filled ? .semibold : .medium))
-                .foregroundStyle(filled ? .white : Theme.ink)
+                .foregroundStyle(filled ? Theme.onInk : Theme.ink)
                 .padding(.horizontal, 14)
                 .frame(height: 34)
                 .background(RoundedRectangle(cornerRadius: 8).fill(filled ? Theme.ink : Theme.surface))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(filled ? .clear : Color(hex: "#C9CED6")))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(filled ? .clear : Theme.stroke))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

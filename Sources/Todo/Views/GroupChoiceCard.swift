@@ -64,7 +64,7 @@ struct GroupChoiceCard: View {
                 .fill(Theme.surface)
                 .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
         )
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "#C9CED6")))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.stroke))
     }
 }
 

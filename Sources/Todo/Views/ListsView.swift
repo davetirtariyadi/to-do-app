@@ -89,7 +89,7 @@ struct ListsView: View {
         .overlay {
             if chooserOpen, let id = currentId, let item = store.item(id) {
                 ZStack {
-                    Color.black.opacity(0.06).onTapGesture { chooserOpen = false }
+                    Theme.scrim.onTapGesture { chooserOpen = false }
                     GroupChoiceCard(
                         title: "Move to group",
                         subtitle: item.title,
@@ -131,7 +131,7 @@ struct ListsView: View {
                 }
             }
             .padding(3)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color(hex: "#EEF0F3")))
+            .background(RoundedRectangle(cornerRadius: 8).fill(Theme.segment))
         } trailing: {
             Text(state.listTab == .today ? "\(store.todayOpen.count) left" : "\(store.open.count) open")
                 .font(Theme.mono(11))
@@ -166,7 +166,7 @@ struct ListsView: View {
                         .foregroundStyle(Theme.muted)
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: "#C9CED6"), style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.stroke, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
                         .padding(.top, 8)
                 }
             }
@@ -193,7 +193,7 @@ struct ListsView: View {
             Text(item.title)
                 .font(.system(size: 13.5))
                 .strikethrough(item.done)
-                .foregroundStyle(item.done ? Color(hex: "#6B717D") : Theme.ink)
+                .foregroundStyle(item.done ? Theme.doneInk : Theme.ink)
                 .lineLimit(1)
                 .truncationMode(.tail)
             Spacer(minLength: 6)
@@ -213,7 +213,7 @@ struct ListsView: View {
         Button { select(item.id); store.toggleToday(item.id) } label: {
             Image(systemName: "sun.max")
                 .font(.system(size: size * 0.46, weight: .semibold))
-                .foregroundStyle(item.onToday ? Theme.sun : Color(hex: "#9AA0AA"))
+                .foregroundStyle(item.onToday ? Theme.sun : Theme.hollow)
                 .frame(width: size, height: size)
                 .background(RoundedRectangle(cornerRadius: 6).fill(item.onToday ? Theme.sunSoft : .clear))
                 .contentShape(Rectangle())

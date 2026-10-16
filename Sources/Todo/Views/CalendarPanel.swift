@@ -64,15 +64,15 @@ struct CalendarPanel: View {
                 .fill(Theme.surface)
                 .shadow(color: .black.opacity(0.16), radius: 14, y: 8)
         )
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "#C9CED6")))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.stroke))
     }
 
     private func dayCell(_ day: String, inMonth: Bool) -> some View {
         let isSelected = day == selected
         let isCursor = day == cursor
         let isToday = day == today
-        let color: Color = isSelected ? .white
-            : !inMonth ? Color(hex: "#B9BFC9")
+        let color: Color = isSelected ? Theme.onAccent
+            : !inMonth ? Theme.dim
             : day < today ? Theme.faint
             : Theme.ink
         return Button { pick(day) } label: {

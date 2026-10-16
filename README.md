@@ -25,7 +25,7 @@ You only need the Command Line Tools (`xcode-select --install`). Xcode and an Ap
 | Groups | ↑↓ · **⏎** rename · **C** / ⇧C colour · **⌥↑↓** reorder (Board columns follow) · **⌫** delete (choose where its to-dos go) · **N** new |
 | Catch up | → done · ← not done · **Z** undo · **R** run again |
 
-Esc always goes back one level, and pressing it on Home hides the window. The menu bar icon shows how many Today items are still open. Its menu has **Manage groups…**, **Keep on top** and **Launch at login**.
+Esc always goes back one level, and pressing it on Home hides the window. The menu bar icon shows how many Today items are still open. Its menu has **Manage groups…**, **Keep on top**, **Appearance** (Match System, Light or Dark) and **Launch at login**.
 
 ## Data
 
