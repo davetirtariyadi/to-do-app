@@ -8,6 +8,7 @@ struct OptionRow: View {
     let subtitle: String
     let key: String
     let highlighted: Bool
+    var height: CGFloat = 60
 
     var body: some View {
         HStack(spacing: 12) {
@@ -25,7 +26,7 @@ struct OptionRow: View {
         }
         .padding(.leading, 12)
         .padding(.trailing, 14)
-        .frame(height: 60)
+        .frame(height: height)
         .background(RoundedRectangle(cornerRadius: 12).fill(Theme.surface))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -79,7 +80,7 @@ struct HomeView: View {
                           subtitle: deck > 0 ? "\(deck) to review" : "All clear", key: "C",
                           highlighted: state.homeIndex == 1)
                     .onTapGesture { activate(1) }
-                OptionRow(icon: "rectangle.split.3x1", title: "View", subtitle: "Today · All · Board", key: "V",
+                OptionRow(icon: "rectangle.split.3x1", title: "View", subtitle: "Today · All · Board · Groups", key: "V",
                           highlighted: state.homeIndex == 2)
                     .onTapGesture { activate(2) }
             }

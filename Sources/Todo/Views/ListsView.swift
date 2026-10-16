@@ -7,6 +7,9 @@ struct ListsView: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var store: Store
     @Local private var cursor: UUID? = nil
+    /// The "Move to group" card opened with G.
+    @Local private var chooserOpen = false
+    @Local private var chooserActive = 0
 
     private struct Section: Identifiable {
         let id: String
@@ -74,14 +77,29 @@ struct ListsView: View {
             }
             HStack {
                 HintText(text: state.listTab == .board
-                         ? "↑↓ card · ←→ column · Space done · T today · Esc home"
-                         : "↑↓ move · Space done · T today · 1–3 view · Esc home")
+                         ? "↑↓←→ move · Space done · T today · G group · Esc"
+                         : "↑↓ move · Space done · T today · G group · Esc home")
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 12)
             .frame(height: 26)
             .background(Theme.surface)
             .overlay(alignment: .top) { Rectangle().fill(Theme.line).frame(height: 1) }
+        }
+        .overlay {
+            if chooserOpen, let id = currentId, let item = store.item(id) {
+                ZStack {
+                    Color.black.opacity(0.06).onTapGesture { chooserOpen = false }
+                    GroupChoiceCard(
+                        title: "Move to group",
+                        subtitle: item.title,
+                        choices: groupChoices(for: item),
+                        active: chooserActive,
+                        hint: "↑↓ or letter · ⏎ move · Esc cancel",
+                        onPick: { applyGroup($0) }
+                    )
+                }
+            }
         }
         .grabsFocus()
         .onKeyPress(phases: .down) { handle($0) }
@@ -167,8 +185,11 @@ struct ListsView: View {
             .accessibilityLabel(item.done ? "Mark not done" : "Mark done")
 
             Dot(hex: store.color(forGroup: item.group))
-                .padding(.trailing, 6)
-                .help(item.group ?? "No group")
+                .frame(width: 14, height: 30)
+                .contentShape(Rectangle())
+                .padding(.trailing, 2)
+                .onTapGesture { select(item.id); openChooser() }
+                .help("\(item.group ?? "No group") — click or press G to change")
             Text(item.title)
                 .font(.system(size: 13.5))
                 .strikethrough(item.done)
@@ -305,8 +326,47 @@ struct ListsView: View {
         store.toggleDone(id)
     }
 
+    // MARK: Move to group
+
+    private func groupChoices(for item: TodoItem) -> [GroupChoice] {
+        [GroupChoice(label: "No group", value: nil, hex: "#B9BFC9", isCurrent: item.group == nil)]
+            + store.groups.map {
+                GroupChoice(label: $0.name, value: $0.name, hex: $0.colorHex, isCurrent: item.group == $0.name)
+            }
+    }
+
+    private func openChooser() {
+        guard let id = currentId, let item = store.item(id) else { return }
+        chooserActive = groupChoices(for: item).firstIndex { $0.isCurrent } ?? 0
+        chooserOpen = true
+    }
+
+    private func applyGroup(_ index: Int) {
+        defer { chooserOpen = false }
+        guard let id = currentId, let item = store.item(id) else { return }
+        let choices = groupChoices(for: item)
+        guard choices.indices.contains(index) else { return }
+        cursor = id
+        store.setGroup(id, choices[index].value)
+    }
+
     private func handle(_ press: KeyPress) -> KeyPress.Result {
         if press.modifiers.contains(.command) { return .ignored }
+        if chooserOpen {
+            if let id = currentId, let item = store.item(id) {
+                var active = chooserActive
+                if moveChoice(press, choices: groupChoices(for: item), active: &active) {
+                    chooserActive = active
+                    return .handled
+                }
+            }
+            switch press.key {
+            case .return, .space: applyGroup(chooserActive)
+            case .escape: chooserOpen = false
+            default: break
+            }
+            return .handled
+        }
         switch press.key {
         case .escape: state.goHome(highlight: 2); return .handled
         case .upArrow: move(-1); return .handled
@@ -326,6 +386,7 @@ struct ListsView: View {
         case "k": move(-1)
         case "x": toggleDoneAtCursor()
         case "t": if let id = currentId { cursor = id; store.toggleToday(id) }
+        case "g": openChooser()
         default: return .ignored
         }
         return .handled

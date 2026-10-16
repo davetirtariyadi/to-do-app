@@ -335,10 +335,13 @@ struct AddView: View {
 
     private func dateKey(_ press: KeyPress) -> KeyPress.Result {
         if press.modifiers.contains(.command) { return .ignored }
+        if press.isBackspace {
+            if calOpen { pickDate(nil) } else { date = nil }
+            return .handled
+        }
         if !calOpen {
             switch press.key {
             case .return, .space, .downArrow, .upArrow: openCalendar(); return .handled
-            case .delete, .deleteForward: date = nil; return .handled
             default: return .ignored
             }
         }
@@ -351,7 +354,6 @@ struct AddView: View {
         case .pageDown: calCursor = DayKey.addMonths(calCursor, 1)
         case .return, .space: pickDate(calCursor)
         case .escape: calOpen = false
-        case .delete, .deleteForward: pickDate(nil)
         case .tab: calOpen = false; return .ignored
         default:
             if press.characters.lowercased() == "t" { calCursor = today } else { return .ignored }

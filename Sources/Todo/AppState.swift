@@ -1,7 +1,7 @@
 import Foundation
 
 enum Screen: Equatable {
-    case home, add, view, list, catchUp
+    case home, add, view, list, catchUp, groups
 }
 
 enum ListTab: String, CaseIterable {

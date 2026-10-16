@@ -6,15 +6,33 @@ struct ViewPickerView: View {
     @EnvironmentObject var store: Store
     @Local private var index = 0
 
-    private var rows: [(tab: ListTab, icon: String, title: String, subtitle: String, key: String)] {
+    private struct Row {
+        let icon: String
+        let title: String
+        let subtitle: String
+        let key: String
+        let open: () -> Void
+    }
+
+    private var rows: [Row] {
         [
-            (.today, "sun.max", "Today", "\(store.todayOpen.count) left on your list", "T"),
-            (.all, "list.bullet", "All to-dos", "\(store.open.count) open, by date", "A"),
-            (.board, "rectangle.split.3x1", "Board", "\(store.groups.count) groups as columns", "B"),
+            Row(icon: "sun.max", title: "Today", subtitle: "\(store.todayOpen.count) left on your list", key: "T") {
+                state.openList(.today)
+            },
+            Row(icon: "list.bullet", title: "All to-dos", subtitle: "\(store.open.count) open, by date", key: "A") {
+                state.openList(.all)
+            },
+            Row(icon: "rectangle.split.3x1", title: "Board", subtitle: "\(store.groups.count) groups as columns", key: "B") {
+                state.openList(.board)
+            },
+            Row(icon: "circle.grid.2x2", title: "Groups", subtitle: "Rename, recolour, reorder, delete", key: "G") {
+                state.go(.groups)
+            },
         ]
     }
 
     var body: some View {
+        let rows = rows
         VStack(spacing: 0) {
             HeaderBar(onBack: { state.goHome(highlight: 2) }) {
                 Text("View").font(.system(size: 14, weight: .semibold))
@@ -22,10 +40,10 @@ struct ViewPickerView: View {
                 HintText(text: "↑↓ move · ⏎ open · Esc back")
             }
             VStack(spacing: 8) {
-                ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
-                    OptionRow(icon: row.icon, title: row.title, subtitle: row.subtitle, key: row.key,
-                              highlighted: index == i)
-                        .onTapGesture { state.openList(row.tab) }
+                ForEach(rows.indices, id: \.self) { i in
+                    OptionRow(icon: rows[i].icon, title: rows[i].title, subtitle: rows[i].subtitle,
+                              key: rows[i].key, highlighted: index == i, height: 52)
+                        .onTapGesture { rows[i].open() }
                 }
             }
             .padding(12)
@@ -33,19 +51,17 @@ struct ViewPickerView: View {
         }
         .grabsFocus()
         .onKeyPress(phases: .down) { press in
+            let n = rows.count
             switch press.key {
-            case .upArrow: index = (index + 2) % 3; return .handled
-            case .downArrow: index = (index + 1) % 3; return .handled
-            case .return, .space: state.openList(rows[index].tab); return .handled
+            case .upArrow: index = (index + n - 1) % n; return .handled
+            case .downArrow: index = (index + 1) % n; return .handled
+            case .return, .space: rows[index].open(); return .handled
             case .escape: state.goHome(highlight: 2); return .handled
             default: break
             }
-            switch press.characters.lowercased() {
-            case "t": state.openList(.today)
-            case "a": state.openList(.all)
-            case "b": state.openList(.board)
-            default: return .ignored
-            }
+            let ch = press.characters.uppercased()
+            guard let row = rows.first(where: { $0.key == ch }) else { return .ignored }
+            row.open()
             return .handled
         }
     }

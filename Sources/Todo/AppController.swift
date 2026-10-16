@@ -79,11 +79,12 @@ final class AppController: ObservableObject {
         if panel.isVisible && panel.isKeyWindow { hide() } else { show() }
     }
 
-    /// Esc that no view consumed: the Add screen decides for itself (it may
-    /// just close a picker); elsewhere go home, and on Home hide the window.
+    /// Esc that no view consumed: Add and Groups decide for themselves (they
+    /// may just close a picker or cancel an edit); elsewhere go home, and on
+    /// Home hide the window.
     func handleEscape() {
         switch state.screen {
-        case .add: state.escapePressed()
+        case .add, .groups: state.escapePressed()
         case .home: hide()
         case .view: state.goHome(highlight: 2)
         case .list: state.goHome(highlight: 2)
@@ -113,6 +114,7 @@ struct RootView: View {
             case .view: ViewPickerView()
             case .list: ListsView()
             case .catchUp: CatchUpView()
+            case .groups: GroupsView()
             }
         }
         .frame(width: AppController.windowSize.width, height: AppController.windowSize.height)

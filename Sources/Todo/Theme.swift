@@ -49,6 +49,14 @@ extension Color {
     }
 }
 
+extension KeyPress {
+    /// The Backspace key arrives as U+007F on macOS, which `.delete` (U+0008)
+    /// doesn't match, so check both plus forward-delete.
+    var isBackspace: Bool {
+        key == .delete || key == .deleteForward || characters == "\u{7F}" || characters == "\u{8}"
+    }
+}
+
 // MARK: - Small shared pieces
 
 /// A keyboard key hint, e.g. [A].

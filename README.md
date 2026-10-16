@@ -20,10 +20,12 @@ You only need the Command Line Tools (`xcode-select --install`). Xcode and an Ap
 | Add | type → **⏎** add · **⇧⏎** add another · **Tab** → Group → Date → Today → Add · **⌘⏎** add from anywhere |
 | Group picker | ⏎ open · ↑↓ or first letter · ⏎ pick · "New group…" to create one |
 | Calendar | ←→ day · ↑↓ week · PgUp/PgDn month · **T** today · ⌫ clear · ⏎ pick |
-| Today / All / Board | ↑↓ move · Space done · **T** toggle Today · **1–3** switch · ←→ columns on Board |
+| View | ↑↓ ⏎ · **T** Today · **A** All · **B** Board · **G** Groups |
+| Today / All / Board | ↑↓ move · Space done · **T** toggle Today · **G** move to group (or click the dot) · **1–3** switch · ←→ columns on Board |
+| Groups | ↑↓ · **⏎** rename · **C** / ⇧C colour · **⌥↑↓** reorder (Board columns follow) · **⌫** delete (choose where its to-dos go) · **N** new |
 | Catch up | → done · ← not done · **Z** undo · **R** run again |
 
-Esc always goes back one level, and pressing it on Home hides the window. The menu bar icon shows how many Today items are still open. Its menu has **Keep on top** and **Launch at login**.
+Esc always goes back one level, and pressing it on Home hides the window. The menu bar icon shows how many Today items are still open. Its menu has **Manage groups…**, **Keep on top** and **Launch at login**.
 
 ## Data
 

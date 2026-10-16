@@ -76,6 +76,48 @@ import Testing
         #expect(s.groups.count == 4)
     }
 
+    @Test func renameCarriesItemsAndRejectsClashes() {
+        let s = makeStore()
+        let a = s.add(title: "a", group: "Errands", date: nil, onToday: false)!
+        #expect(s.renameGroup("Errands", to: "Shopping"))
+        #expect(s.item(a.id)?.group == "Shopping")
+        #expect(!s.renameGroup("Shopping", to: "work"))   // clashes with Work
+        #expect(!s.renameGroup("Shopping", to: "  "))
+        #expect(s.renameGroup("Shopping", to: "shopping")) // case-only change is fine
+        #expect(s.groups.map(\.name) == ["Work", "Home", "shopping"])
+    }
+
+    @Test func deleteMovesItemsAndReorderWorks() {
+        let s = makeStore()
+        let a = s.add(title: "a", group: "Home", date: nil, onToday: false)!
+        let b = s.add(title: "b", group: "Home", date: nil, onToday: false)!
+        s.setDone(b.id, true)
+        s.deleteGroup("Home", moveItemsTo: "Work")
+        #expect(s.item(a.id)?.group == "Work")
+        #expect(s.item(b.id)?.group == "Work")
+        #expect(s.groups.map(\.name) == ["Work", "Errands"])
+
+        s.deleteGroup("Errands", moveItemsTo: nil)
+        s.addGroup(named: "Garden")
+        s.moveGroup("Garden", by: -1)
+        #expect(s.groups.map(\.name) == ["Garden", "Work"])
+        s.moveGroup("Garden", by: -1) // already first: no-op
+        #expect(s.groups.first?.name == "Garden")
+    }
+
+    @Test func colourCyclesAndItemsChangeGroup() {
+        let s = makeStore()
+        s.cycleGroupColor("Work")
+        #expect(s.groups[0].colorHex == TodoGroup.colorChoices[1])
+        s.cycleGroupColor("Work", by: -2)
+        #expect(s.groups[0].colorHex == TodoGroup.colorChoices.last)
+        let a = s.add(title: "a", group: nil, date: nil, onToday: false)!
+        s.setGroup(a.id, "Home")
+        #expect(s.openCount(inGroup: "Home") == 1)
+        s.setGroup(a.id, nil)
+        #expect(s.openCount(inGroup: nil) == 1)
+    }
+
     @Test func savesAndReloads() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let url = dir.appendingPathComponent("todos.json")

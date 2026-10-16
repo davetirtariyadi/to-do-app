@@ -51,6 +51,9 @@ public struct TodoGroup: Codable, Identifiable, Equatable, Hashable {
 
     /// Colours handed out to groups created in the app, in order.
     public static let palette = ["#B45309", "#BE185D", "#4D7C0F", "#0369A1", "#9333EA", "#0F766E"]
+
+    /// Every colour a group can cycle through on the Groups screen.
+    public static let colorChoices = ["#2B59C3", "#0F766E", "#7E3AF2", "#B45309", "#BE185D", "#4D7C0F", "#0369A1", "#9333EA"]
 }
 
 /// On-disk shape of todos.json.

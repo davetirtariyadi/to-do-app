@@ -115,6 +115,62 @@ public final class Store: ObservableObject {
         return g
     }
 
+    public func setGroup(_ id: UUID, _ group: String?) {
+        update(id) { $0.group = group }
+    }
+
+    public func openCount(inGroup name: String?) -> Int {
+        items.filter { !$0.done && $0.group == name }.count
+    }
+
+    /// Renames a group and every to-do in it. Fails (returns false) for an
+    /// empty name or one another group already uses; changing only the
+    /// capitalisation of the same group is allowed.
+    @discardableResult
+    public func renameGroup(_ old: String, to raw: String) -> Bool {
+        let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, let i = groups.firstIndex(where: { $0.name == old }) else { return false }
+        if name == old { return true }
+        let clash = groups.contains { $0.name != old && $0.name.caseInsensitiveCompare(name) == .orderedSame }
+        guard !clash else { return false }
+        groups[i].name = name
+        for j in items.indices where items[j].group == old { items[j].group = name }
+        scheduleSave()
+        return true
+    }
+
+    public func setGroupColor(_ name: String, _ hex: String) {
+        guard let i = groups.firstIndex(where: { $0.name == name }) else { return }
+        groups[i].colorHex = hex
+        scheduleSave()
+    }
+
+    /// Steps a group's colour through `TodoGroup.colorChoices`.
+    public func cycleGroupColor(_ name: String, by step: Int = 1) {
+        guard let g = groups.first(where: { $0.name == name }) else { return }
+        let choices = TodoGroup.colorChoices
+        let current = choices.firstIndex(of: g.colorHex.uppercased()) ?? -1
+        let next = ((current + step) % choices.count + choices.count) % choices.count
+        setGroupColor(name, choices[next])
+    }
+
+    /// Moves a group earlier (-1) or later (+1); Board columns follow this order.
+    public func moveGroup(_ name: String, by delta: Int) {
+        guard let i = groups.firstIndex(where: { $0.name == name }) else { return }
+        let j = i + delta
+        guard groups.indices.contains(j) else { return }
+        groups.swapAt(i, j)
+        scheduleSave()
+    }
+
+    /// Deletes a group; its to-dos (open and done) move to `target` (nil = No group).
+    public func deleteGroup(_ name: String, moveItemsTo target: String?) {
+        guard groups.contains(where: { $0.name == name }), target != name else { return }
+        groups.removeAll { $0.name == name }
+        for j in items.indices where items[j].group == name { items[j].group = target }
+        scheduleSave()
+    }
+
     private func update(_ id: UUID, _ change: (inout TodoItem) -> Void) {
         guard let i = items.firstIndex(where: { $0.id == id }) else { return }
         change(&items[i])

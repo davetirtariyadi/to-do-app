@@ -53,8 +53,44 @@ enum DevHarness {
             .snap("11-catchup"),
             .key(right, "\u{F703}"),
             .snap("12-catchup-next"),
+            // Groups screen: rename, recolour, reorder, delete, create.
+            .key(esc, "\u{1B}"),
+            .type("v"),
+            .snap("13-view"),
+            .type("g"),
+            .key(down, "\u{F701}"),
+            .snap("14-groups"),
+            .key(ret, "\r"),
+            .key(backspace, "\u{7F}"), .key(backspace, "\u{7F}"), .key(backspace, "\u{7F}"), .key(backspace, "\u{7F}"),
+            .type("House"),
+            .snap("15-renaming"),
+            .key(ret, "\r"),
+            .type("c"),
+            .key(up, "\u{F700}", .option),
+            .snap("16-renamed-moved"),
+            .key(down, "\u{F701}"),
+            .key(down, "\u{F701}"),
+            .key(backspace, "\u{7F}"),
+            .snap("17-delete-card"),
+            .key(down, "\u{F701}"),
+            .key(ret, "\r"),
+            .type("n"),
+            .type("Garden"),
+            .key(ret, "\r"),
+            .snap("18-after-delete-create"),
+            // Move a to-do to another group from the Today list.
+            .key(esc, "\u{1B}"),
+            .type("v"),
+            .type("t"),
+            .type("g"),
+            .snap("19-move-chooser"),
+            .type("g"),
+            .key(ret, "\r"),
+            .snap("20-moved"),
         ]
     }
+
+    static let backspace: UInt16 = 51
 
     static func runIfRequested(controller: AppController, window: NSWindow) {
         guard let dir = ProcessInfo.processInfo.environment["TODO_SNAPSHOT_DIR"] else { return }
