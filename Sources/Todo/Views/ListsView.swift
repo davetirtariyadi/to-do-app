@@ -9,9 +9,6 @@ struct ListsView: View {
     @Local private var cursor: UUID? = nil
     /// On the Board, the empty column ←→ landed on. Set, it stands in for the cursor.
     @Local private var emptyColumn: String? = nil
-    /// The Board column to scroll into view, and which edge it lines up with.
-    @Local private var boardScroll: String? = nil
-    @Local private var boardScrollAnchor: UnitPoint = .trailing
     /// The "Move to group" card opened with G.
     @Local private var chooserOpen = false
     @Local private var chooserActive = 0
@@ -79,6 +76,12 @@ struct ListsView: View {
                 }
                 .onChange(of: cursor) { _, id in
                     if let id { withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(id) } }
+                }
+                // Landing on an empty Board column scrolls it into view. Leaving one
+                // scrolls back to the cursor card, which may not have changed.
+                .onChange(of: emptyColumn) { _, col in
+                    let target = col.map(AnyHashable.init) ?? cursor.map(AnyHashable.init)
+                    if let target { withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(target) } }
                 }
             }
             HStack {
@@ -263,12 +266,11 @@ struct ListsView: View {
                             RoundedRectangle(cornerRadius: 10).stroke(Theme.accent, lineWidth: 2)
                         }
                     }
+                    .id(col.id)
                 }
             }
-            .scrollTargetLayout()
             .padding(10)
         }
-        .scrollPosition(id: $boardScroll, anchor: boardScrollAnchor)
     }
 
     private func card(_ item: TodoItem, isCursor: Bool) -> some View {
@@ -312,22 +314,12 @@ struct ListsView: View {
         emptyColumn = nil
     }
 
-    /// Scrolls the Board so the column is fully visible, lining it up with the
-    /// right edge when moving right and the left edge when moving left.
-    private func reveal(column id: String, movingRight: Bool) {
-        boardScrollAnchor = movingRight ? .trailing : .leading
-        boardScroll = id
-    }
-
     private func move(_ delta: Int) {
         if state.listTab == .board && emptyColumn != nil { return }
         let f = flat
         guard !f.isEmpty else { return }
         let i = max(0, min(f.count - 1, cursorIndex + delta))
         cursor = f[i].id
-        if state.listTab == .board, let col = columns.first(where: { c in c.items.contains { $0.id == f[i].id } }) {
-            reveal(column: col.id, movingRight: delta > 0)
-        }
     }
 
     /// Steps one column left or right, stopping on empty columns too so the
@@ -340,7 +332,6 @@ struct ListsView: View {
             ?? (delta > 0 ? -1 : cols.count)
         let c = col + delta
         guard cols.indices.contains(c) else { return }
-        reveal(column: cols[c].id, movingRight: delta > 0)
         if let first = cols[c].items.first {
             select(first.id)
         } else {
