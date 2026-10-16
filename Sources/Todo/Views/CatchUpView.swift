@@ -1,8 +1,13 @@
 import SwiftUI
 import TodoCore
 
-/// One card at a time: → done, ← not done, Z undo. The deck is fixed when
-/// the screen opens so marking items done doesn't reshuffle it.
+/// A stack of cards: → or swipe right is done, ← or swipe left is not done,
+/// Z undo. The deck is fixed when the screen opens so marking items done
+/// doesn't reshuffle it.
+///
+/// Answered cards stay in the view, parked off to the side they were sent,
+/// so answering and undoing are both just a change of `index` that SwiftUI
+/// animates: the card flies out, or flies back in from where it left.
 struct CatchUpView: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var store: Store
@@ -13,6 +18,13 @@ struct CatchUpView: View {
     @Local private var keptCount = 0
     @Local private var history: [(id: UUID, wasDone: Bool, markedDone: Bool)] = []
     @Local private var started = false
+    @Local private var dragX: CGFloat = 0
+
+    private static let fling = Animation.spring(response: 0.36, dampingFraction: 0.82)
+    /// How far a drag has to travel before letting go answers the card.
+    private static let swipeThreshold: CGFloat = 100
+    /// Resting tilt of the top card and the two peeking behind it.
+    private static let tilts: [Double] = [0, -2.2, 1.8]
 
     private var active: Bool { index < deck.count }
     private var finished: Bool { !deck.isEmpty && index >= deck.count }
@@ -32,8 +44,8 @@ struct CatchUpView: View {
 
             if !started {
                 Spacer()
-            } else if active, let item = store.item(deck[index]) {
-                cardScreen(item)
+            } else if active {
+                cardScreen
             } else if finished {
                 finishedScreen
             } else {
@@ -45,55 +57,15 @@ struct CatchUpView: View {
         .onAppear(perform: restart)
     }
 
-    private func cardScreen(_ item: TodoItem) -> some View {
-        let kind = DayKey.kind(item.date, today: store.today)
-        return VStack(spacing: 9) {
+    private var cardScreen: some View {
+        VStack(spacing: 9) {
             ProgressBar(fraction: Double(index) / Double(max(deck.count, 1)), height: 3)
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    if let g = item.group {
-                        HStack(spacing: 5) {
-                            Dot(hex: store.color(forGroup: g), size: 6)
-                            Text(g)
-                        }
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(Theme.ink2)
-                        .padding(.horizontal, 8)
-                        .frame(height: 22)
-                        .background(Capsule().fill(Theme.ground))
-                    }
-                    if item.onToday {
-                        Text("On Today")
-                            .font(.system(size: 11.5))
-                            .foregroundStyle(Theme.sunInk)
-                            .padding(.horizontal, 8)
-                            .frame(height: 22)
-                            .background(Capsule().fill(Theme.sunSoft))
-                    }
-                    Spacer(minLength: 0)
-                    if item.date != nil {
-                        Text(DayKey.longLabel(item.date, today: store.today))
-                            .font(Theme.mono(11, kind == .overdue || kind == .today ? .medium : .regular))
-                            .foregroundStyle(Theme.dateColor(kind))
-                    }
-                }
-                .frame(minHeight: 22)
-                Text(item.title)
-                    .font(.system(size: 18, weight: .medium))
-                    .lineLimit(3)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Theme.surface)
-                    .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
-            )
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border))
+            cardStack
+                .padding(.horizontal, 6)
+                .padding(.top, 2)
+                .padding(.bottom, 18)
+                .zIndex(1)
 
             HStack(spacing: 8) {
                 answerButton("Not done", key: "←", filled: false) { answer(done: false) }
@@ -116,6 +88,126 @@ struct CatchUpView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
+    }
+
+    /// The last two answered cards (parked off screen, so undo can fly them
+    /// back), the current card, and three behind it. Only two of those peek out.
+    private var cardStack: some View {
+        let range = max(0, index - 2)..<min(deck.count, index + 4)
+        return ZStack {
+            ForEach(range, id: \.self) { pos in
+                if let item = store.item(deck[pos]) {
+                    stackCard(item, at: pos)
+                }
+            }
+        }
+    }
+
+    private func stackCard(_ item: TodoItem, at pos: Int) -> some View {
+        let depth = pos - index
+        var x: CGFloat = 0, y: CGFloat = 0, angle = 0.0, scale: CGFloat = 1, opacity = 1.0
+        // -1…1: how far toward "Not done" or "Done" the card has been pushed.
+        var lean: CGFloat = 0
+        if depth < 0 {
+            let dir: CGFloat = pos < history.count && history[pos].markedDone ? 1 : -1
+            x = dir * 460; y = -20; angle = Double(dir) * 24; opacity = 0; lean = dir
+        } else if depth == 0 {
+            x = dragX; angle = Double(dragX / 200 * 12)
+            lean = max(-1, min(1, dragX / 90))
+        } else {
+            let d = min(depth, 2)
+            y = CGFloat(d) * 11; scale = 1 - CGFloat(d) * 0.04; angle = Self.tilts[d]
+            opacity = depth > 2 ? 0 : 1
+        }
+        return cardFace(item)
+            .overlay(alignment: .bottomLeading) {
+                stamp("Done", color: Theme.accent, angle: -8).opacity(max(0, lean)).padding(12)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                stamp("Not done", color: Theme.ink2, angle: 8).opacity(max(0, -lean)).padding(12)
+            }
+            .brightness(depth > 0 ? -0.025 * Double(min(depth, 2)) : 0)
+            .scaleEffect(scale)
+            .rotationEffect(.degrees(angle))
+            .offset(x: x, y: y)
+            .opacity(opacity)
+            // Answered cards fly over the stack; the rest stack front to back.
+            .zIndex(depth < 0 ? Double(10 + pos) : Double(-depth))
+            .allowsHitTesting(depth == 0)
+            .gesture(swipe)
+    }
+
+    private var swipe: some Gesture {
+        DragGesture(minimumDistance: 3)
+            .onChanged { dragX = $0.translation.width }
+            .onEnded { value in
+                let dx = value.translation.width
+                let flung = abs(value.predictedEndTranslation.width) > Self.swipeThreshold * 2.2
+                withAnimation(Self.fling) {
+                    if abs(dx) > Self.swipeThreshold || flung { answer(done: dx > 0) }
+                    dragX = 0
+                }
+            }
+    }
+
+    private func cardFace(_ item: TodoItem) -> some View {
+        let kind = DayKey.kind(item.date, today: store.today)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                if let g = item.group {
+                    HStack(spacing: 5) {
+                        Dot(hex: store.color(forGroup: g), size: 6)
+                        Text(g)
+                    }
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Theme.ink2)
+                    .padding(.horizontal, 8)
+                    .frame(height: 22)
+                    .background(Capsule().fill(Theme.ground))
+                }
+                if item.onToday {
+                    Text("On Today")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Theme.sunInk)
+                        .padding(.horizontal, 8)
+                        .frame(height: 22)
+                        .background(Capsule().fill(Theme.sunSoft))
+                }
+                Spacer(minLength: 0)
+                if item.date != nil {
+                    Text(DayKey.longLabel(item.date, today: store.today))
+                        .font(Theme.mono(11, kind == .overdue || kind == .today ? .medium : .regular))
+                        .foregroundStyle(Theme.dateColor(kind))
+                }
+            }
+            .frame(minHeight: 22)
+            Text(item.title)
+                .font(.system(size: 18, weight: .medium))
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Theme.surface)
+                .shadow(color: .black.opacity(0.07), radius: 8, y: 4)
+        )
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border))
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func stamp(_ title: String, color: Color, angle: Double) -> some View {
+        Text(title)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 8)
+            .frame(height: 22)
+            .background(RoundedRectangle(cornerRadius: 6).fill(Theme.surface))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(color, lineWidth: 1.5))
+            .rotationEffect(.degrees(angle))
     }
 
     private func answerButton(_ title: String, key: String, filled: Bool, action: @escaping () -> Void) -> some View {
@@ -195,6 +287,7 @@ struct CatchUpView: View {
         doneCount = 0
         keptCount = 0
         history = []
+        dragX = 0
         started = true
     }
 
@@ -203,16 +296,20 @@ struct CatchUpView: View {
         let id = deck[index]
         let wasDone = store.item(id)?.done ?? false
         if done { store.setDone(id, true) }
-        history.append((id, wasDone, done))
-        if done { doneCount += 1 } else { keptCount += 1 }
-        index += 1
+        withAnimation(Self.fling) {
+            history.append((id, wasDone, done))
+            if done { doneCount += 1 } else { keptCount += 1 }
+            index += 1
+        }
     }
 
     private func undo() {
         guard let last = history.popLast() else { return }
         store.setDone(last.id, last.wasDone)
-        if last.markedDone { doneCount -= 1 } else { keptCount -= 1 }
-        index -= 1
+        withAnimation(Self.fling) {
+            if last.markedDone { doneCount -= 1 } else { keptCount -= 1 }
+            index -= 1
+        }
     }
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
