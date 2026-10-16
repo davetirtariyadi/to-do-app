@@ -56,8 +56,8 @@ final class AppController: ObservableObject {
         panel.setFrameAutosaveName("TodoPanel")
         self.panel = panel
 
-        // ⌃⌥Space shows/hides, ⌃⌥N jumps straight to Add.
-        HotKeyCenter.shared.register(keyCode: kVK_Space, modifiers: controlKey | optionKey) { [weak self] in
+        // ⌃⌘Space shows/hides, ⌃⌥N jumps straight to Add.
+        HotKeyCenter.shared.register(keyCode: kVK_Space, modifiers: controlKey | cmdKey) { [weak self] in
             self?.toggle()
         }
         HotKeyCenter.shared.register(keyCode: kVK_ANSI_N, modifiers: controlKey | optionKey) { [weak self] in

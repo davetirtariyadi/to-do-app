@@ -16,7 +16,7 @@ You only need the Command Line Tools (`xcode-select --install`). Xcode and an Ap
 
 | Where | Keys |
 |---|---|
-| Anywhere | **⌃⌥Space** show/hide · **⌃⌥N** add a to-do |
+| Anywhere | **⌃⌘Space** show/hide · **⌃⌥N** add a to-do |
 | Home | ↑↓ ⏎ · **A** add · **C** catch up · **V** view · Esc hides |
 | Add | type → **⏎** add · **⇧⏎** add another · **Tab** → Group → Date → Today → Add · **⌘⏎** add from anywhere |
 | Group picker | ⏎ open · ↑↓ or first letter · ⏎ pick · "New group…" to create one |

@@ -54,7 +54,7 @@ struct MenuContent: View {
     @EnvironmentObject var store: Store
 
     var body: some View {
-        Button("Show Todo   ⌃⌥Space") { controller.show() }
+        Button("Show Todo   ⌃⌘Space") { controller.show() }
         Button("Add to-do…   ⌃⌥N") { controller.show(.add) }
         Button("Catch up (\(store.catchUpDeck.count))") { controller.show(.catchUp) }
         Button("Manage groups…") { controller.show(.groups) }
