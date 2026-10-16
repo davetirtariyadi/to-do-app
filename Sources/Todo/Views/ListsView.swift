@@ -7,6 +7,8 @@ struct ListsView: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var store: Store
     @Local private var cursor: UUID? = nil
+    /// On the Board, the empty column ←→ landed on. Set, it stands in for the cursor.
+    @Local private var emptyColumn: String? = nil
     /// The "Move to group" card opened with G.
     @Local private var chooserOpen = false
     @Local private var chooserActive = 0
@@ -60,6 +62,7 @@ struct ListsView: View {
     }
 
     private var currentId: UUID? {
+        if state.listTab == .board && emptyColumn != nil { return nil }
         let f = flat
         return f.isEmpty ? nil : f[min(cursorIndex, f.count - 1)].id
     }
@@ -73,6 +76,12 @@ struct ListsView: View {
                 }
                 .onChange(of: cursor) { _, id in
                     if let id { withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(id) } }
+                }
+                // Landing on an empty Board column scrolls it into view. Leaving one
+                // scrolls back to the cursor card, which may not have changed.
+                .onChange(of: emptyColumn) { _, col in
+                    let target = col.map(AnyHashable.init) ?? cursor.map(AnyHashable.init)
+                    if let target { withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(target) } }
                 }
             }
             HStack {
@@ -252,6 +261,12 @@ struct ListsView: View {
                     .padding(6)
                     .frame(width: 164)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Theme.column))
+                    .overlay {
+                        if emptyColumn == col.id {
+                            RoundedRectangle(cornerRadius: 10).stroke(Theme.accent, lineWidth: 2)
+                        }
+                    }
+                    .id(col.id)
                 }
             }
             .padding(10)
@@ -288,28 +303,39 @@ struct ListsView: View {
 
     // MARK: Keys
 
-    private func select(_ id: UUID) { cursor = id }
+    private func select(_ id: UUID) {
+        cursor = id
+        emptyColumn = nil
+    }
 
     private func switchTab(_ tab: ListTab) {
         state.listTab = tab
         cursor = nil
+        emptyColumn = nil
     }
 
     private func move(_ delta: Int) {
+        if state.listTab == .board && emptyColumn != nil { return }
         let f = flat
         guard !f.isEmpty else { return }
         let i = max(0, min(f.count - 1, cursorIndex + delta))
         cursor = f[i].id
     }
 
+    /// Steps one column left or right, stopping on empty columns too so the
+    /// Board can scroll all the way across from the keyboard.
     private func jumpColumn(_ delta: Int) {
         let cols = columns
         let id = currentId
-        let col = cols.firstIndex { c in c.items.contains { $0.id == id } } ?? 0
-        var c = col + delta
-        while cols.indices.contains(c) {
-            if let first = cols[c].items.first { cursor = first.id; return }
-            c += delta
+        let col = cols.firstIndex { $0.id == emptyColumn }
+            ?? cols.firstIndex { c in c.items.contains { $0.id == id } }
+            ?? (delta > 0 ? -1 : cols.count)
+        let c = col + delta
+        guard cols.indices.contains(c) else { return }
+        if let first = cols[c].items.first {
+            select(first.id)
+        } else {
+            emptyColumn = cols[c].id
         }
     }
 
