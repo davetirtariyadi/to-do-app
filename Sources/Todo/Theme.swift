@@ -2,21 +2,22 @@ import AppKit
 import SwiftUI
 import TodoCore
 
-/// Colours and type from the prototype. Each colour has a light and a dark
-/// value and follows the window's appearance (see `Appearance`).
+/// Warm paper and sumi ink, the same family as the home screen.
+/// Each colour has a light and a dark value and follows the window's
+/// appearance (see `Appearance`).
 enum Theme {
-    static let ink = Color(light: "#16181D", dark: "#ECEEF2")
-    static let ink2 = Color(light: "#3F4450", dark: "#C4C8D0")
-    static let muted = Color(light: "#5B616E", dark: "#9AA0AB")
-    static let faint = Color(light: "#8A909C", dark: "#737985")
-    static let line = Color(light: "#DDE1E6", dark: "#2C3039")
-    static let border = Color(light: "#D5D9DF", dark: "#3A3F49")
-    static let ground = Color(light: "#F4F5F7", dark: "#15171B")
-    static let surface = Color(light: "#FFFFFF", dark: "#1F2227")
-    static let column = Color(light: "#E7EAEE", dark: "#101215")
+    static let ink = Color(light: "#2C2824", dark: "#E8E3DA")
+    static let ink2 = Color(light: "#4A453E", dark: "#C9C2B6")
+    static let muted = Color(light: "#6A645C", dark: "#A8A196")
+    static let faint = Color(light: "#8F877C", dark: "#7A746A")
+    static let line = Color(light: "#DDD6CC", dark: "#3A3631")
+    static let border = Color(light: "#D4CBBF", dark: "#4A453E")
+    static let ground = Color(light: "#F4F1EB", dark: "#171614")
+    static let surface = Color(light: "#FBF9F5", dark: "#24211D")
+    static let column = Color(light: "#E8E2D8", dark: "#100E0C")
     /// Warm off-white in dark, warm charcoal in light (Enso).
     static let accent = Color(light: "#2A2925", dark: "#ECE8DF")
-    static let accentSoft = Color(light: "#ECE9E2", dark: "#2A2926")
+    static let accentSoft = Color(light: "#ECE9E2", dark: "#3F3830")
     static let cursor = Color(light: "#E8E5DE", dark: "#2B2A27")
     /// Faint warm glow behind the breathing ring.
     static let glow = Color(light: "#2A2925", dark: "#ECE8DF", lightOpacity: 0.08, darkOpacity: 0.14)
@@ -26,21 +27,23 @@ enum Theme {
     static let overdue = Color(light: "#B42318", dark: "#F07065")
 
     /// Outline of popovers, buttons and idle fields.
-    static let stroke = Color(light: "#C9CED6", dark: "#454B56")
+    static let stroke = Color(light: "#C9C0B3", dark: "#564F47")
     /// Idle ring of the title field; days outside the shown month.
-    static let dim = Color(light: "#B9BFC9", dark: "#555B66")
+    static let dim = Color(light: "#B7AFA3", dark: "#6B645B")
     /// Empty check circle and an unset Today sun.
-    static let hollow = Color(light: "#9AA0AA", dark: "#6E7480")
-    static let disabled = Color(light: "#A9AEB8", dark: "#555B66")
-    static let doneInk = Color(light: "#6B717D", dark: "#7C828E")
+    static let hollow = Color(light: "#A3998C", dark: "#7A7368")
+    static let disabled = Color(light: "#B0A89C", dark: "#6B645B")
+    static let doneInk = Color(light: "#7A7368", dark: "#8A8378")
     /// Track behind the Today / All / Board tabs.
-    static let segment = Color(light: "#EEF0F3", dark: "#111316")
+    static let segment = Color(light: "#EBE6DE", dark: "#100E0C")
+    /// Dot for a to-do that has no group.
+    static let ungroupedHex = TodoGroup.ungroupedHex
     /// Text and marks on an `accent` fill.
-    static let onAccent = Color(light: "#FFFFFF", dark: "#15171B")
+    static let onAccent = Color(light: "#FFFFFF", dark: "#171614")
     static let onAccentLine = Color(light: "#8C887F", dark: "#6B675E")
     static let accentDisabled = Color(light: "#B8B4AB", dark: "#4A4843")
     /// Text on an `ink` fill.
-    static let onInk = Color(light: "#FFFFFF", dark: "#15171B")
+    static let onInk = Color(light: "#FBF9F5", dark: "#171614")
     static let sunLine = Color(light: "#F0C48E", dark: "#8A5A1F")
     /// Dims the screen behind a modal card.
     static let scrim = Color(light: "#000000", dark: "#000000", lightOpacity: 0.06, darkOpacity: 0.35)
