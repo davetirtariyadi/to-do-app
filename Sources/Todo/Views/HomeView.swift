@@ -27,11 +27,8 @@ struct OptionRow: View {
         .padding(.leading, 12)
         .padding(.trailing, 14)
         .frame(height: height)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Theme.surface))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(highlighted ? Theme.accent : Theme.border, lineWidth: highlighted ? 2 : 1)
-        )
+        .background(RoundedRectangle(cornerRadius: 12).fill(highlighted ? Theme.cursor : .clear))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(highlighted ? Theme.border : .clear))
         .contentShape(Rectangle())
     }
 }
@@ -259,7 +256,7 @@ struct EnsoRing: View {
                         .rotationEffect(.degrees(-90))
                         .animation(.timingCurve(0.6, 0, 0.2, 1, duration: 1.2), value: fraction)
                         .animation(.timingCurve(0.6, 0, 0.2, 1, duration: 2.0).delay(0.2), value: appeared)
-                    Text("\(done)/\(total)")
+                    Text("\(done) / \(total)")
                         .font(Theme.mono(12))
                         .foregroundStyle(Theme.accent)
                         .contentTransition(.numericText())
