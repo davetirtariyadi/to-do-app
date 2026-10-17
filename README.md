@@ -10,6 +10,17 @@ open ~/Applications/Todo.app
 scripts/test.sh              # runs the unit tests
 ```
 
+Only `main` installs. On any other branch `make-app.sh` builds `build/Todo.app` as "Todo Dev" (`com.local.todo.dev`) and leaves `~/Applications` alone. For quick tries, `swift run` works too.
+
+To have `main` reinstall itself after every merge, run this once from the checkout that stays on `main`:
+
+```bash
+scripts/install-auto-update.sh              # checks every 5 min and on local merges
+scripts/install-auto-update.sh --uninstall
+```
+
+It fetches `origin/main`, rebuilds only when the commit changes, and reopens the app if it was running. Progress goes to `~/Library/Logs/todo-auto-update.log`.
+
 You only need the Command Line Tools (`xcode-select --install`). Xcode and an Apple Developer account aren't required. Run the tests with `scripts/test.sh` rather than plain `swift test`. With only the Command Line Tools, `swift test` can't find the Swift Testing macros ("plugin for module 'TestingMacros' not found"), so the script points the compiler at them. It passes any extra arguments through, e.g. `scripts/test.sh --filter StoreTests`.
 
 ## Using it
@@ -30,7 +41,7 @@ Esc always goes back one level, and pressing it on Home hides the window. The me
 
 ## Data
 
-Everything is stored in `~/Library/Application Support/Todo/todos.json`, a plain JSON file you can back up or edit.
+Everything is stored in `~/Library/Application Support/Todo/todos.json`, a plain JSON file you can back up or edit. Only the installed app (`com.local.todo`) uses it. Dev builds and `swift run` use `~/Library/Application Support/Todo-dev/todos.json`, so testing never touches real data.
 
 ## Code map
 

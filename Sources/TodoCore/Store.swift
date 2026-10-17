@@ -25,9 +25,16 @@ public final class Store: ObservableObject {
         }
     }
 
-    public static func defaultURL() -> URL {
+    /// Bundle ID of the installed app built from main by scripts/make-app.sh.
+    public static let releaseBundleID = "com.local.todo"
+
+    /// Only the release app reads and writes the real `Todo/todos.json`. Anything
+    /// else (`swift run`, which has no bundle ID, or a dev build stamped
+    /// `com.local.todo.dev`) uses `Todo-dev/` so testing never touches real data.
+    public static func defaultURL(bundleID: String? = Bundle.main.bundleIdentifier) -> URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("Todo", isDirectory: true).appendingPathComponent("todos.json")
+        let folder = bundleID == releaseBundleID ? "Todo" : "Todo-dev"
+        return base.appendingPathComponent(folder, isDirectory: true).appendingPathComponent("todos.json")
     }
 
     public var today: String { todayProvider() }

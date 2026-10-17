@@ -40,6 +40,12 @@ import Testing
 }
 
 @Suite struct StoreTests {
+    @Test func onlyReleaseBundleUsesRealData() {
+        #expect(Store.defaultURL(bundleID: "com.local.todo").path.hasSuffix("/Todo/todos.json"))
+        #expect(Store.defaultURL(bundleID: "com.local.todo.dev").path.hasSuffix("/Todo-dev/todos.json"))
+        #expect(Store.defaultURL(bundleID: nil).path.hasSuffix("/Todo-dev/todos.json"))
+    }
+
     func makeStore() -> Store {
         let s = Store(url: nil)
         s.todayProvider = { "2026-10-15" }
