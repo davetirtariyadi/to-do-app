@@ -6,6 +6,7 @@ struct GroupChoice {
     let value: String?
     let hex: String
     let isCurrent: Bool
+    var emoji: String? = nil
 }
 
 /// A floating "pick a group" card. It only draws and takes clicks; the screen
@@ -33,7 +34,7 @@ struct GroupChoiceCard: View {
                         ForEach(choices.indices, id: \.self) { i in
                             let c = choices[i]
                             HStack(spacing: 8) {
-                                Dot(hex: c.hex)
+                                GroupMark(hex: c.hex, emoji: c.emoji)
                                 Text(c.label).font(.system(size: 13))
                                 Spacer(minLength: 0)
                                 if c.isCurrent {

@@ -12,6 +12,7 @@ private struct GroupOption: Identifiable {
     let hex: String
     let value: String?
     let isNew: Bool
+    var emoji: String? = nil
 }
 
 /// Type → Tab → Group → Date → Today → Add. The pickers keep focus on their
@@ -40,7 +41,7 @@ struct AddView: View {
     private var groupOptions: [GroupOption] {
         var opts = [GroupOption(id: 0, label: "No group", hex: "#B9BFC9", value: nil, isNew: false)]
         for (i, g) in store.groups.enumerated() {
-            opts.append(GroupOption(id: i + 1, label: g.name, hex: g.colorHex, value: g.name, isNew: false))
+            opts.append(GroupOption(id: i + 1, label: g.name, hex: g.colorHex, value: g.name, isNew: false, emoji: g.emoji))
         }
         opts.append(GroupOption(id: opts.count, label: "New group…", hex: "#00000000", value: nil, isNew: true))
         return opts
@@ -125,9 +126,10 @@ struct AddView: View {
     }
 
     private var groupButton: some View {
-        let hex = store.groups.first { $0.name == group }?.colorHex ?? "#B9BFC9"
+        let match = store.groups.first { $0.name == group }
+        let hex = match?.colorHex ?? "#B9BFC9"
         return pickerFace(width: 128, field: .group, isSet: group != nil) {
-            Dot(hex: hex)
+            GroupMark(hex: hex, emoji: match?.emoji)
             Text(group ?? "No group").lineLimit(1)
         }
         .onTapGesture { focus = .group; groupOpen ? (groupOpen = false) : openGroup() }
@@ -143,7 +145,11 @@ struct AddView: View {
             VStack(spacing: 0) {
                 ForEach(opts) { opt in
                     HStack(spacing: 8) {
-                        Circle().fill(opt.isNew ? .clear : Color(hex: opt.hex)).frame(width: 7, height: 7)
+                        if opt.isNew {
+                            Circle().fill(.clear).frame(width: 7, height: 7)
+                        } else {
+                            GroupMark(hex: opt.hex, emoji: opt.emoji)
+                        }
                         Text(opt.label).font(.system(size: 13))
                         Spacer(minLength: 0)
                         if !opt.isNew && opt.value == group {

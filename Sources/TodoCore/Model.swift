@@ -36,11 +36,41 @@ public struct TodoItem: Codable, Identifiable, Equatable, Hashable {
 public struct TodoGroup: Codable, Identifiable, Equatable, Hashable {
     public var name: String
     public var colorHex: String
+    /// One extended grapheme cluster the user chose, or nil to keep the colour dot.
+    public var emoji: String?
     public var id: String { name }
 
-    public init(name: String, colorHex: String) {
+    public init(name: String, colorHex: String, emoji: String? = nil) {
         self.name = name
         self.colorHex = colorHex
+        self.emoji = emoji
+    }
+
+    /// The first extended grapheme cluster in `raw`, or nil when it is blank.
+    /// Skin-tone and ZWJ sequences count as one cluster.
+    public static func normalizedEmoji(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let cluster = trimmed.first else { return nil }
+        return String(cluster)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case name, colorHex, emoji
+    }
+
+    /// Missing `emoji` stays nil so a file written before this field still loads.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = try c.decode(String.self, forKey: .name)
+        colorHex = try c.decode(String.self, forKey: .colorHex)
+        emoji = try c.decodeIfPresent(String.self, forKey: .emoji).flatMap(Self.normalizedEmoji)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(name, forKey: .name)
+        try c.encode(colorHex, forKey: .colorHex)
+        try c.encodeIfPresent(emoji, forKey: .emoji)
     }
 
     public static let defaults: [TodoGroup] = [

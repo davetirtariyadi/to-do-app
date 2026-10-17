@@ -139,6 +139,27 @@ struct Dot: View {
     }
 }
 
+/// A group's colour dot, or its emoji on a light tint of that colour.
+struct GroupMark: View {
+    let hex: String
+    var emoji: String? = nil
+    var dotSize: CGFloat = 7
+
+    var body: some View {
+        if let emoji, let mark = TodoGroup.normalizedEmoji(emoji) {
+            let box = max(dotSize + 6, 15)
+            Text(mark)
+                .font(.system(size: box * 0.72))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .frame(width: box, height: box)
+                .background(Circle().fill(Color(hex: hex).opacity(0.2)))
+        } else {
+            Dot(hex: hex, size: dotSize)
+        }
+    }
+}
+
 /// The round done/not-done mark.
 struct CheckCircle: View {
     let done: Bool

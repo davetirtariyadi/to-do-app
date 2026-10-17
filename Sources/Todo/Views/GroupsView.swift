@@ -1,7 +1,7 @@
 import SwiftUI
 import TodoCore
 
-/// Rename, recolour, reorder, add and delete groups — all from the keyboard.
+/// Rename, recolour, mark, reorder, add and delete groups — all from the keyboard.
 struct GroupsView: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var store: Store
@@ -10,12 +10,17 @@ struct GroupsView: View {
     @Local private var renaming: String? = nil
     @Local private var creating = false
     @Local private var draft = ""
+    @Local private var marking: String? = nil
+    @Local private var emojiDraft = ""
+    /// Set when a click starts another edit, so the field losing focus doesn't save over it.
+    @Local private var ignoreBlur = false
     @Local private var error = ""
     @Local private var deleting: String? = nil
     @Local private var deleteTarget = 0
     @FocusState private var fieldFocused: Bool
 
-    private var editing: Bool { renaming != nil || creating }
+    private var naming: Bool { renaming != nil || creating }
+    private var editing: Bool { naming || marking != nil }
 
     private var current: TodoGroup? {
         store.groups.indices.contains(cursor) ? store.groups[cursor] : nil
@@ -58,7 +63,7 @@ struct GroupsView: View {
                 HStack {
                     HintText(text: editing
                              ? "⏎ save · Esc cancel"
-                             : "⏎ rename · C colour · ⌥↑↓ order · ⌫ delete · N new")
+                             : "⏎ rename · E emoji · C colour · ⌥↑↓ order · ⌫ delete · N new")
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 12)
@@ -76,8 +81,11 @@ struct GroupsView: View {
         .onKeyPress(phases: .down) { handle($0) }
         .onChange(of: state.escapeTick) { escape() }
         .onChange(of: fieldFocused) { _, focused in
-            // Clicking away from the name field saves it, like pressing Enter.
-            if !focused && editing { commitEdit() }
+            // Clicking away from the field saves it, like pressing Enter.
+            if focused { ignoreBlur = false; return }
+            if ignoreBlur { ignoreBlur = false; return }
+            if naming { commitEdit() }
+            else if marking != nil { commitEmoji() }
         }
     }
 
@@ -85,13 +93,17 @@ struct GroupsView: View {
 
     private func row(_ i: Int, _ g: TodoGroup) -> some View {
         HStack(spacing: 8) {
-            Button { cursor = i; store.cycleGroupColor(g.name) } label: {
-                Circle().fill(Color(hex: g.colorHex)).frame(width: 12, height: 12)
-                    .frame(width: 26, height: 26)
-                    .contentShape(Rectangle())
+            if marking == g.name {
+                emojiField
+            } else {
+                Button { cursor = i; store.cycleGroupColor(g.name) } label: {
+                    GroupMark(hex: g.colorHex, emoji: g.emoji, dotSize: 12)
+                        .frame(width: 26, height: 26)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Change colour (C) · set emoji (E)")
             }
-            .buttonStyle(.plain)
-            .help("Change colour (C)")
 
             if renaming == g.name {
                 nameField
@@ -123,6 +135,36 @@ struct GroupsView: View {
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.accent, lineWidth: 1.5))
             .focused($fieldFocused)
             .onSubmit(commitEdit)
+    }
+
+    private var emojiField: some View {
+        TextField("😀", text: $emojiDraft)
+            .textFieldStyle(.plain)
+            .font(.system(size: 14))
+            .multilineTextAlignment(.center)
+            .frame(width: 28, height: 28)
+            .background(RoundedRectangle(cornerRadius: 6).fill(Theme.surface))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.accent, lineWidth: 1.5))
+            .focused($fieldFocused)
+            .onSubmit(commitEmoji)
+            .onChange(of: emojiDraft) { old, new in
+                let clamped = clampEmoji(old: old, new: new)
+                if clamped != new { emojiDraft = clamped }
+            }
+    }
+
+    /// Keeps the field to one grapheme. Appending another emoji replaces the one
+    /// already there; a paste into an empty field keeps the first cluster.
+    private func clampEmoji(old: String, new: String) -> String {
+        let trimmed = new.trimmingCharacters(in: .whitespacesAndNewlines)
+        let clusters = Array(trimmed)
+        guard let first = clusters.first else { return "" }
+        guard clusters.count > 1 else { return String(first) }
+        let oldTrim = old.trimmingCharacters(in: .whitespacesAndNewlines)
+        if oldTrim == String(first), let last = clusters.last {
+            return String(last)
+        }
+        return String(first)
     }
 
     private var newRow: some View {
@@ -172,7 +214,7 @@ struct GroupsView: View {
     private func deleteChoices(for name: String) -> [GroupChoice] {
         [GroupChoice(label: "No group", value: nil, hex: "#B9BFC9", isCurrent: false)]
             + store.groups.filter { $0.name != name }
-                .map { GroupChoice(label: $0.name, value: $0.name, hex: $0.colorHex, isCurrent: false) }
+                .map { GroupChoice(label: $0.name, value: $0.name, hex: $0.colorHex, isCurrent: false, emoji: $0.emoji) }
     }
 
     private func itemCount(_ name: String) -> Int {
@@ -227,7 +269,9 @@ struct GroupsView: View {
 
     private func startRename() {
         guard let g = current else { return }
+        ignoreBlur = true
         creating = false
+        marking = nil
         draft = g.name
         error = ""
         renaming = g.name
@@ -235,7 +279,9 @@ struct GroupsView: View {
     }
 
     private func startCreate() {
+        ignoreBlur = true
         renaming = nil
+        marking = nil
         draft = ""
         error = ""
         creating = true
@@ -264,9 +310,33 @@ struct GroupsView: View {
         endEdit()
     }
 
+    private func startEmoji() {
+        guard let g = current else { return }
+        ignoreBlur = true
+        renaming = nil
+        creating = false
+        emojiDraft = g.emoji ?? ""
+        error = ""
+        marking = g.name
+        DispatchQueue.main.async { fieldFocused = true }
+    }
+
+    /// Return on an empty field clears the emoji; otherwise the first cluster is saved.
+    private func commitEmoji() {
+        guard let name = marking else { return }
+        if emojiDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            store.setGroupEmoji(name, nil)
+        } else {
+            store.setGroupEmoji(name, emojiDraft)
+        }
+        endEdit()
+    }
+
     private func endEdit() {
         renaming = nil
         creating = false
+        marking = nil
+        emojiDraft = ""
         error = ""
         state.requestFocus()
     }
@@ -280,7 +350,7 @@ struct GroupsView: View {
     }
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
-        // While a name field is open, let it have every key except Esc.
+        // While a text field is open, let it have every key except Esc.
         if editing {
             if press.key == .escape { endEdit(); return .handled }
             return .ignored
@@ -319,6 +389,7 @@ struct GroupsView: View {
         }
         switch press.characters.lowercased() {
         case "r": startRename()
+        case "e": startEmoji()
         case "n": startCreate()
         case "c": if let g = current { store.cycleGroupColor(g.name, by: press.modifiers.contains(.shift) ? -1 : 1) }
         default: return .ignored

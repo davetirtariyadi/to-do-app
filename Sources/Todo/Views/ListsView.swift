@@ -193,8 +193,8 @@ struct ListsView: View {
             .buttonStyle(.plain)
             .accessibilityLabel(item.done ? "Mark not done" : "Mark done")
 
-            Dot(hex: store.color(forGroup: item.group))
-                .frame(width: 14, height: 30)
+            GroupMark(hex: store.color(forGroup: item.group), emoji: store.emoji(forGroup: item.group))
+                .frame(minWidth: 14, height: 30)
                 .contentShape(Rectangle())
                 .padding(.trailing, 2)
                 .onTapGesture { select(item.id); openChooser() }
@@ -240,7 +240,10 @@ struct ListsView: View {
                 ForEach(columns) { col in
                     VStack(alignment: .leading, spacing: 5) {
                         HStack(spacing: 6) {
-                            Dot(hex: col.hex)
+                            GroupMark(
+                                hex: col.hex,
+                                emoji: store.emoji(forGroup: col.id.isEmpty ? nil : col.name)
+                            )
                             Text(col.name).font(.system(size: 12.5, weight: .semibold))
                             Spacer()
                             Text("\(col.items.count)").font(Theme.mono(11)).foregroundStyle(Theme.muted)
@@ -357,7 +360,7 @@ struct ListsView: View {
     private func groupChoices(for item: TodoItem) -> [GroupChoice] {
         [GroupChoice(label: "No group", value: nil, hex: "#B9BFC9", isCurrent: item.group == nil)]
             + store.groups.map {
-                GroupChoice(label: $0.name, value: $0.name, hex: $0.colorHex, isCurrent: item.group == $0.name)
+                GroupChoice(label: $0.name, value: $0.name, hex: $0.colorHex, isCurrent: item.group == $0.name, emoji: $0.emoji)
             }
     }
 

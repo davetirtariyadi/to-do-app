@@ -124,6 +124,73 @@ import Testing
         #expect(s.openCount(inGroup: nil) == 1)
     }
 
+    @Test func groupEmojiKeepsOneClusterAndRejectsBlank() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let url = dir.appendingPathComponent("todos.json")
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let s = Store(url: url)
+        #expect(!s.setGroupEmoji("Work", ""))
+        #expect(!s.setGroupEmoji("Work", " \n\t"))
+        #expect(s.groups[0].emoji == nil)
+
+        #expect(s.setGroupEmoji("Work", "👍🏽 later"))
+        #expect(s.groups[0].emoji == "👍🏽")
+        #expect(s.groups[0].emoji?.count == 1)
+
+        #expect(s.setGroupEmoji("Home", "👩‍💻 extra"))
+        let home = s.groups.first { $0.name == "Home" }
+        #expect(home?.emoji == "👩‍💻")
+        #expect(home?.emoji?.count == 1)
+
+        #expect(!s.setGroupEmoji("Work", "   "))
+        #expect(s.groups[0].emoji == "👍🏽")
+        #expect(!s.setGroupEmoji("Missing", "🔥"))
+
+        #expect(s.setGroupEmoji("Work", nil))
+        #expect(s.groups[0].emoji == nil)
+
+        s.setGroupEmoji("Errands", "📦📦")
+        s.saveNow()
+        let reloaded = Store(url: url)
+        #expect(reloaded.groups.first { $0.name == "Errands" }?.emoji == "📦")
+        #expect(reloaded.groups.first { $0.name == "Work" }?.emoji == nil)
+        #expect(reloaded.groups.first { $0.name == "Home" }?.emoji == "👩‍💻")
+    }
+
+    @Test func legacyFileWithoutEmojiKeyStillLoads() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let url = dir.appendingPathComponent("todos.json")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        let json = """
+        {
+          "version": 1,
+          "items": [
+            {
+              "id": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE",
+              "title": "Still here",
+              "onToday": true,
+              "done": false,
+              "createdAt": "2026-10-15T15:00:00Z"
+            }
+          ],
+          "groups": [
+            { "name": "Work", "colorHex": "#2B59C3" },
+            { "name": "Home", "colorHex": "#0F766E" }
+          ]
+        }
+        """
+        try Data(json.utf8).write(to: url)
+
+        let s = Store(url: url)
+        #expect(s.items.map(\.title) == ["Still here"])
+        #expect(s.items[0].onToday)
+        #expect(s.groups.map(\.name) == ["Work", "Home"])
+        #expect(s.groups.allSatisfy { $0.emoji == nil })
+    }
+
     @Test func savesAndReloads() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let url = dir.appendingPathComponent("todos.json")

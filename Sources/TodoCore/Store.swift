@@ -77,6 +77,11 @@ public final class Store: ObservableObject {
         return g.colorHex
     }
 
+    public func emoji(forGroup name: String?) -> String? {
+        guard let name else { return nil }
+        return groups.first { $0.name == name }?.emoji
+    }
+
     // MARK: Mutations
 
     @discardableResult
@@ -150,6 +155,22 @@ public final class Store: ObservableObject {
         guard let i = groups.firstIndex(where: { $0.name == name }) else { return }
         groups[i].colorHex = hex
         scheduleSave()
+    }
+
+    /// Sets a group's emoji to the first extended grapheme cluster in `raw`.
+    /// Empty or whitespace-only text is rejected and the current emoji stays.
+    /// Pass nil to clear it, which brings the colour dot back.
+    @discardableResult
+    public func setGroupEmoji(_ name: String, _ raw: String?) -> Bool {
+        guard let i = groups.firstIndex(where: { $0.name == name }) else { return false }
+        if let raw {
+            guard let emoji = TodoGroup.normalizedEmoji(raw) else { return false }
+            groups[i].emoji = emoji
+        } else {
+            groups[i].emoji = nil
+        }
+        scheduleSave()
+        return true
     }
 
     /// Steps a group's colour through `TodoGroup.colorChoices`.

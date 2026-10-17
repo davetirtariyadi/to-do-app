@@ -156,7 +156,7 @@ struct CatchUpView: View {
             HStack(spacing: 6) {
                 if let g = item.group {
                     HStack(spacing: 5) {
-                        Dot(hex: store.color(forGroup: g), size: 6)
+                        GroupMark(hex: store.color(forGroup: g), emoji: store.emoji(forGroup: g), dotSize: 6)
                         Text(g)
                     }
                     .font(.system(size: 11.5))

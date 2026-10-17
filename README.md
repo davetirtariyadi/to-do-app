@@ -34,7 +34,7 @@ You only need the Command Line Tools (`xcode-select --install`). Xcode and an Ap
 | Calendar | ←→ day · ↑↓ week · PgUp/PgDn month · **T** today · ⌫ clear · ⏎ pick |
 | View | ↑↓ ⏎ · **T** Today · **A** All · **B** Board · **G** Groups |
 | Today / All / Board | ↑↓ move · Space done · **T** toggle Today · **G** move to group (or click the dot) · **1–3** switch · ←→ columns on Board |
-| Groups | ↑↓ · **⏎** rename · **C** / ⇧C colour · **⌥↑↓** reorder (Board columns follow) · **⌫** delete (choose where its to-dos go) · **N** new |
+| Groups | ↑↓ · **⏎** rename · **E** emoji (Mac picker or paste, ⏎ saves, empty clears) · **C** / ⇧C colour · **⌥↑↓** reorder (Board columns follow) · **⌫** delete (choose where its to-dos go) · **N** new |
 | Catch up | → done · ← not done · **Z** undo · **R** run again |
 
 Esc always goes back one level, and pressing it on Home hides the window. The menu bar icon shows how many Today items are still open. Its menu has **Manage groups…**, **Keep on top**, **Appearance** (Match System, Light or Dark) and **Launch at login**.
