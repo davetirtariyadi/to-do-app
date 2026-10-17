@@ -14,9 +14,12 @@ enum Theme {
     static let ground = Color(light: "#F4F5F7", dark: "#15171B")
     static let surface = Color(light: "#FFFFFF", dark: "#1F2227")
     static let column = Color(light: "#E7EAEE", dark: "#101215")
-    static let accent = Color(light: "#2B59C3", dark: "#4A78DE")
-    static let accentSoft = Color(light: "#E8EEFB", dark: "#1F2B45")
-    static let cursor = Color(light: "#E3E9F8", dark: "#263452")
+    /// Warm off-white in dark, warm charcoal in light (Enso).
+    static let accent = Color(light: "#2A2925", dark: "#ECE8DF")
+    static let accentSoft = Color(light: "#ECE9E2", dark: "#2A2926")
+    static let cursor = Color(light: "#E8E5DE", dark: "#2B2A27")
+    /// Faint warm glow behind the breathing ring.
+    static let glow = Color(light: "#2A2925", dark: "#ECE8DF", lightOpacity: 0.08, darkOpacity: 0.14)
     static let sun = Color(light: "#B45309", dark: "#E8A13A")
     static let sunSoft = Color(light: "#FDF1E3", dark: "#3A2A16")
     static let sunInk = Color(light: "#8A3B06", dark: "#F5C07A")
@@ -33,9 +36,9 @@ enum Theme {
     /// Track behind the Today / All / Board tabs.
     static let segment = Color(light: "#EEF0F3", dark: "#111316")
     /// Text and marks on an `accent` fill.
-    static let onAccent = Color.white
-    static let onAccentLine = Color(light: "#8FA6E0", dark: "#A9C0F5")
-    static let accentDisabled = Color(light: "#9DB0E2", dark: "#34466E")
+    static let onAccent = Color(light: "#FFFFFF", dark: "#15171B")
+    static let onAccentLine = Color(light: "#8C887F", dark: "#6B675E")
+    static let accentDisabled = Color(light: "#B8B4AB", dark: "#4A4843")
     /// Text on an `ink` fill.
     static let onInk = Color(light: "#FFFFFF", dark: "#15171B")
     static let sunLine = Color(light: "#F0C48E", dark: "#8A5A1F")
