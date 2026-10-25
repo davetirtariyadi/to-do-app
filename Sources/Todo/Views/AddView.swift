@@ -39,7 +39,7 @@ struct AddView: View {
     private var today: String { store.today }
 
     private var groupOptions: [GroupOption] {
-        var opts = [GroupOption(id: 0, label: "No group", hex: "#B9BFC9", value: nil, isNew: false)]
+        var opts = [GroupOption(id: 0, label: "No group", hex: Theme.ungroupedHex, value: nil, isNew: false)]
         for (i, g) in store.groups.enumerated() {
             opts.append(GroupOption(id: i + 1, label: g.name, hex: g.colorHex, value: g.name, isNew: false, emoji: g.emoji))
         }
@@ -127,7 +127,7 @@ struct AddView: View {
 
     private var groupButton: some View {
         let match = store.groups.first { $0.name == group }
-        let hex = match?.colorHex ?? "#B9BFC9"
+        let hex = match?.colorHex ?? Theme.ungroupedHex
         return pickerFace(width: 128, field: .group, isSet: group != nil) {
             GroupMark(hex: hex, emoji: match?.emoji)
             Text(group ?? "No group").lineLimit(1)

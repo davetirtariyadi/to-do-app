@@ -48,7 +48,7 @@ struct ListsView: View {
         var cols = store.groups.map { g in
             Column(id: g.name, name: g.name, hex: g.colorHex, items: open.filter { $0.group == g.name })
         }
-        cols.append(Column(id: "", name: "No group", hex: "#B9BFC9", items: open.filter { $0.group == nil }))
+        cols.append(Column(id: "", name: "No group", hex: Theme.ungroupedHex, items: open.filter { $0.group == nil }))
         return cols
     }
 
@@ -186,15 +186,17 @@ struct ListsView: View {
 
     private func row(_ item: TodoItem, isCursor: Bool) -> some View {
         let kind = DayKey.kind(item.date, today: store.today)
-        return HStack(spacing: 2) {
+        return HStack(alignment: .top, spacing: 2) {
             Button { select(item.id); store.toggleDone(item.id) } label: {
                 CheckCircle(done: item.done).frame(width: 30, height: 30).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(item.done ? "Mark not done" : "Mark done")
+            .frame(height: 36)
 
             GroupMark(hex: store.color(forGroup: item.group), emoji: store.emoji(forGroup: item.group))
-                .frame(minWidth: 14, height: 30)
+                .frame(minWidth: 14)
+                .frame(height: 36)
                 .contentShape(Rectangle())
                 .padding(.trailing, 2)
                 .onTapGesture { select(item.id); openChooser() }
@@ -203,19 +205,23 @@ struct ListsView: View {
                 .font(.system(size: 13.5))
                 .strikethrough(item.done)
                 .foregroundStyle(item.done ? Theme.doneInk : Theme.ink)
-                .lineLimit(1)
+                .lineLimit(isCursor ? nil : 1)
                 .truncationMode(.tail)
-            Spacer(minLength: 6)
+                .fixedSize(horizontal: false, vertical: isCursor)
+                .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
             Text(DayKey.shortLabel(item.date, today: store.today))
                 .font(Theme.mono(11, kind == .overdue || kind == .today ? .medium : .regular))
                 .foregroundStyle(Theme.dateColor(kind))
+                .frame(height: 36)
             sunButton(item, size: 28)
+                .frame(height: 36)
         }
         .padding(.trailing, 2)
-        .frame(height: 36)
+        .frame(height: isCursor ? nil : 36)
         .background(RoundedRectangle(cornerRadius: 7).fill(isCursor ? Theme.cursor : .clear))
         .contentShape(Rectangle())
         .onTapGesture { select(item.id) }
+        .animation(.easeOut(duration: 0.12), value: isCursor)
     }
 
     private func sunButton(_ item: TodoItem, size: CGFloat) -> some View {
@@ -284,7 +290,10 @@ struct ListsView: View {
             }
             .buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.title).font(.system(size: 12.5)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                Text(item.title)
+                    .font(.system(size: 12.5))
+                    .lineLimit(isCursor ? nil : 2)
+                    .fixedSize(horizontal: false, vertical: true)
                 HStack {
                     Text(DayKey.shortLabel(item.date, today: store.today))
                         .font(Theme.mono(10.5, kind == .overdue ? .medium : .regular))
@@ -358,7 +367,7 @@ struct ListsView: View {
     // MARK: Move to group
 
     private func groupChoices(for item: TodoItem) -> [GroupChoice] {
-        [GroupChoice(label: "No group", value: nil, hex: "#B9BFC9", isCurrent: item.group == nil)]
+        [GroupChoice(label: "No group", value: nil, hex: Theme.ungroupedHex, isCurrent: item.group == nil)]
             + store.groups.map {
                 GroupChoice(label: $0.name, value: $0.name, hex: $0.colorHex, isCurrent: item.group == $0.name, emoji: $0.emoji)
             }

@@ -212,7 +212,7 @@ struct GroupsView: View {
     // MARK: Delete
 
     private func deleteChoices(for name: String) -> [GroupChoice] {
-        [GroupChoice(label: "No group", value: nil, hex: "#B9BFC9", isCurrent: false)]
+        [GroupChoice(label: "No group", value: nil, hex: Theme.ungroupedHex, isCurrent: false)]
             + store.groups.filter { $0.name != name }
                 .map { GroupChoice(label: $0.name, value: $0.name, hex: $0.colorHex, isCurrent: false, emoji: $0.emoji) }
     }

@@ -181,11 +181,12 @@ struct CatchUpView: View {
                 }
             }
             .frame(minHeight: 22)
-            Text(item.title)
-                .font(.system(size: 18, weight: .medium))
-                .lineLimit(3)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
+            ScrollView {
+                Text(item.title)
+                    .font(.system(size: 18, weight: .medium))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)

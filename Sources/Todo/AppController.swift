@@ -6,7 +6,7 @@ import TodoCore
 
 /// Owns the store, the window and the global shortcuts.
 final class AppController: ObservableObject {
-    static let windowSize = NSSize(width: 400, height: 308)
+    static let windowSize = NSSize(width: 400, height: 440)
 
     let store: Store
     let state = AppState()
@@ -45,7 +45,6 @@ final class AppController: ObservableObject {
             .environmentObject(store)
             .environmentObject(state)
         let host = NSHostingView(rootView: root)
-        host.frame = NSRect(origin: .zero, size: Self.windowSize)
         host.wantsLayer = true
         host.layer?.cornerRadius = 12
         host.layer?.masksToBounds = true
@@ -53,6 +52,20 @@ final class AppController: ObservableObject {
         panel.setPinned(pinned)
         panel.onEscape = { [weak self] in self?.handleEscape() }
         if !panel.setFrameUsingName("TodoPanel") { panel.placeDefault() }
+        // A frame saved before the panel grew would stay 308pt and clip the home.
+        // Keep the top edge so a window parked under the menu bar does not slide off.
+        var frame = panel.frame
+        let top = frame.maxY
+        frame.size = Self.windowSize
+        frame.origin.y = top - frame.height
+        if let visible = (panel.screen ?? NSScreen.main)?.visibleFrame {
+            if frame.minY < visible.minY { frame.origin.y = visible.minY }
+            if frame.maxY > visible.maxY { frame.origin.y = visible.maxY - frame.height }
+            if frame.minX < visible.minX { frame.origin.x = visible.minX }
+            if frame.maxX > visible.maxX { frame.origin.x = visible.maxX - frame.width }
+        }
+        panel.setFrame(frame, display: false)
+        host.frame = NSRect(origin: .zero, size: Self.windowSize)
         panel.setFrameAutosaveName("TodoPanel")
         self.panel = panel
 
