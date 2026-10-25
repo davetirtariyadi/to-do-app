@@ -27,17 +27,19 @@ You only need the Command Line Tools (`xcode-select --install`). Xcode and an Ap
 
 | Where | Keys |
 |---|---|
-| Anywhere | **⌃⌘Space** show/hide · **⌃⌥N** add a to-do |
-| Home | ↑↓ ⏎ · **A** add · **C** catch up · **V** view · Esc hides |
+| Anywhere | **⌃⌘Space** show/hide · **⌃⌥N** add a to-do · **⌃⌥B** brain dump |
+| Home | ↑↓ ⏎ · **A** add · **B** brain dump · **C** catch up · **V** view · Esc hides |
 | Add | type → **⏎** add · **⇧⏎** add another · **Tab** → Group → Date → Today → Add · **⌘⏎** add from anywhere |
+| Brain dump | type → **⏎** dump · **⇧⏎** dump another · **⌘⏎** dump from anywhere · Esc back |
 | Group picker | ⏎ open · ↑↓ or first letter · ⏎ pick · "New group…" to create one |
 | Calendar | ←→ day · ↑↓ week · PgUp/PgDn month · **T** today · ⌫ clear · ⏎ pick |
-| View | ↑↓ ⏎ · **T** Today · **A** All · **B** Board · **G** Groups |
-| Today / All / Board | ↑↓ move · Space done · **T** toggle Today · **G** move to group (or click the dot) · **1–3** switch · ←→ columns on Board |
+| View | ↑↓ ⏎ · **T** Today · **A** All · **B** Board · **G** Groups · **N** Notes |
+| Notes | ↑↓ move · **⏎** or **A** turn into a to-do · **⌫** delete · Esc back to View |
+| Today / All / Board | ↑↓ move · Space done · **T** toggle Today · **G** move to group (or click the dot) · **R** rename · **⌫** delete · **1–3** switch · ←→ columns on Board |
 | Groups | ↑↓ · **⏎** rename · **C** / ⇧C colour · **⌥↑↓** reorder (Board columns follow) · **⌫** delete (choose where its to-dos go) · **N** new |
-| Catch up | → done · ← not done · **Z** undo · **R** run again |
+| Catch up | **1** to-dos · **2** notes · → done, or make a to-do · ← not done, or keep · **⌫** delete a note · **Z** undo · **R** run again |
 
-Esc always goes back one level, and pressing it on Home hides the window. The menu bar icon shows how many Today items are still open. Its menu has **Manage groups…**, **Keep on top**, **Appearance** (Match System, Light or Dark) and **Launch at login**.
+Esc always goes back one level, and pressing it on Home hides the window. The menu bar icon shows how many Today items are still open. Its menu has **Brain dump…**, **Manage groups…**, **Keep on top**, **Appearance** (Match System, Light or Dark) and **Launch at login**. Notes are stored beside to-dos. They stay out of the to-do deck and that count, and Catch up reviews them on their own pass.
 
 ## Data
 

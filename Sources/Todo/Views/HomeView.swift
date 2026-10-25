@@ -62,7 +62,7 @@ struct HomeView: View {
     @EnvironmentObject var controller: AppController
 
     var body: some View {
-        let deck = store.catchUpDeck.count
+        let catchUp = catchUpSubtitle
         VStack(spacing: 0) {
             HeaderBar(onBack: nil) {
                 RoundedRectangle(cornerRadius: 3).fill(Theme.accent).frame(width: 10, height: 10)
@@ -74,15 +74,18 @@ struct HomeView: View {
 
             VStack(spacing: 8) {
                 OptionRow(icon: "plus", title: "Add to-do", subtitle: "What, group, date", key: "A",
-                          highlighted: state.homeIndex == 0)
+                          highlighted: state.homeIndex == 0, height: 52)
                     .onTapGesture { activate(0) }
-                OptionRow(icon: "checkmark.rectangle.stack", title: "Catch up",
-                          subtitle: deck > 0 ? "\(deck) to review" : "All clear", key: "C",
-                          highlighted: state.homeIndex == 1)
+                OptionRow(icon: "brain.head.profile", title: "Brain dump", subtitle: dumpSubtitle, key: "B",
+                          highlighted: state.homeIndex == 1, height: 52)
                     .onTapGesture { activate(1) }
-                OptionRow(icon: "rectangle.split.3x1", title: "View", subtitle: "Today · All · Board · Groups", key: "V",
-                          highlighted: state.homeIndex == 2)
+                OptionRow(icon: "checkmark.rectangle.stack", title: "Catch up",
+                          subtitle: catchUp, key: "C",
+                          highlighted: state.homeIndex == 2, height: 52)
                     .onTapGesture { activate(2) }
+                OptionRow(icon: "rectangle.split.3x1", title: "View", subtitle: "Today · All · Board · Groups", key: "V",
+                          highlighted: state.homeIndex == 3, height: 52)
+                    .onTapGesture { activate(3) }
             }
             .padding(12)
 
@@ -109,11 +112,30 @@ struct HomeView: View {
         }
     }
 
+    private var catchUpSubtitle: String {
+        let todos = store.catchUpDeck.count
+        let notes = store.notes.count
+        if notes == 0 { return todos > 0 ? "\(todos) to review" : "All clear" }
+        let noteLabel = notes == 1 ? "1 note" : "\(notes) notes"
+        if todos == 0 { return noteLabel }
+        let todoLabel = todos == 1 ? "1 to-do" : "\(todos) to-dos"
+        return "\(todoLabel) · \(noteLabel)"
+    }
+
+    private var dumpSubtitle: String {
+        switch store.notes.count {
+        case 0: return "A quick thought"
+        case 1: return "1 note"
+        default: return "\(store.notes.count) notes"
+        }
+    }
+
     private func activate(_ i: Int) {
         state.homeIndex = i
         switch i {
-        case 0: state.go(.add)
-        case 1: state.go(.catchUp)
+        case 0: state.openAdd()
+        case 1: state.go(.dump)
+        case 2: state.go(.catchUp)
         default: state.go(.view)
         }
     }
@@ -121,16 +143,17 @@ struct HomeView: View {
     private func handle(_ press: KeyPress) -> KeyPress.Result {
         if press.modifiers.contains(.command) { return .ignored }
         switch press.key {
-        case .upArrow: state.homeIndex = (state.homeIndex + 2) % 3; return .handled
-        case .downArrow: state.homeIndex = (state.homeIndex + 1) % 3; return .handled
+        case .upArrow: state.homeIndex = (state.homeIndex + 3) % 4; return .handled
+        case .downArrow: state.homeIndex = (state.homeIndex + 1) % 4; return .handled
         case .return, .space: activate(state.homeIndex); return .handled
         case .escape: controller.hide(); return .handled
         default: break
         }
         switch press.characters.lowercased() {
         case "a": activate(0)
-        case "c": activate(1)
-        case "v": activate(2)
+        case "b": activate(1)
+        case "c": activate(2)
+        case "v": activate(3)
         default: return .ignored
         }
         return .handled

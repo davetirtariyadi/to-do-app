@@ -1,11 +1,14 @@
 import Combine
 import Foundation
 
-/// Holds every to-do and group, and persists them to a JSON file.
+/// Holds every to-do, note and group, and persists them to a JSON file.
 /// All mutations are expected on the main thread.
 public final class Store: ObservableObject {
     @Published public private(set) var items: [TodoItem]
     @Published public private(set) var groups: [TodoGroup]
+    /// Newest first. Separate from `items`, so notes stay out of Today, the to-do
+    /// catch-up deck, and the menu-bar count.
+    @Published public private(set) var notes: [Note]
 
     private let url: URL?
     private var pendingSave: DispatchWorkItem?
@@ -19,9 +22,11 @@ public final class Store: ObservableObject {
            let file = try? JSONDecoder.store.decode(StoreFile.self, from: data) {
             items = file.items
             groups = file.groups
+            notes = file.notes.sorted { $0.createdAt > $1.createdAt }
         } else {
             items = []
             groups = TodoGroup.defaults
+            notes = []
         }
     }
 
@@ -105,6 +110,41 @@ public final class Store: ObservableObject {
     public func delete(_ id: UUID) {
         items.removeAll { $0.id == id }
         scheduleSave()
+    }
+
+    /// Saves a one-line thought. Blank text is rejected. The list stays newest-first.
+    @discardableResult
+    public func addNote(text: String) -> Note? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let note = Note(text: trimmed)
+        notes.insert(note, at: 0)
+        scheduleSave()
+        return note
+    }
+
+    public func deleteNote(_ id: UUID) {
+        notes.removeAll { $0.id == id }
+        scheduleSave()
+    }
+
+    /// Puts a note back and keeps the list newest-first. A second restore of the
+    /// same id replaces the existing one rather than duplicating it.
+    public func restoreNote(_ note: Note) {
+        notes.removeAll { $0.id == note.id }
+        notes.append(note)
+        notes.sort { $0.createdAt > $1.createdAt }
+        scheduleSave()
+    }
+
+    /// Renames a to-do. Fails (returns false) for a blank title or an unknown
+    /// id and leaves the item unchanged. Only the title changes.
+    @discardableResult
+    public func rename(_ id: UUID, to raw: String) -> Bool {
+        let title = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty, item(id) != nil else { return false }
+        update(id) { $0.title = title }
+        return true
     }
 
     /// Returns the existing group when the name matches case-insensitively.
@@ -200,7 +240,7 @@ public final class Store: ObservableObject {
         guard let url else { return }
         do {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            let data = try JSONEncoder.store.encode(StoreFile(items: items, groups: groups))
+            let data = try JSONEncoder.store.encode(StoreFile(items: items, groups: groups, notes: notes))
             try data.write(to: url, options: .atomic)
         } catch {
             NSLog("Todo: failed to save \(url.path): \(error)")

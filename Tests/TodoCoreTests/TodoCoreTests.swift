@@ -111,6 +111,34 @@ import Testing
         #expect(s.groups.first?.name == "Garden")
     }
 
+    @Test func renameKeepsOtherFieldsAndDeleteRemovesOne() {
+        let s = makeStore()
+        let a = s.add(title: "Alpha", group: "Home", date: "2026-10-20", onToday: true)!
+        let b = s.add(title: "Beta", group: "Work", date: nil, onToday: false)!
+        s.setDone(a.id, true)
+        let before = s.item(a.id)!
+
+        #expect(s.rename(a.id, to: "  Alpha renamed  "))
+        let renamed = s.item(a.id)!
+        #expect(renamed.title == "Alpha renamed")
+        #expect(renamed.id == before.id)
+        #expect(renamed.group == before.group)
+        #expect(renamed.date == before.date)
+        #expect(renamed.onToday == before.onToday)
+        #expect(renamed.done == before.done)
+        #expect(renamed.createdAt == before.createdAt)
+        #expect(renamed.doneAt == before.doneAt)
+
+        #expect(!s.rename(a.id, to: "   "))
+        #expect(s.item(a.id)?.title == "Alpha renamed")
+        #expect(!s.rename(UUID(), to: "Nope"))
+        #expect(s.items.count == 2)
+
+        s.delete(a.id)
+        #expect(s.item(a.id) == nil)
+        #expect(s.items == [b])
+    }
+
     @Test func colourCyclesAndItemsChangeGroup() {
         let s = makeStore()
         s.cycleGroupColor("Work")
@@ -132,6 +160,7 @@ import Testing
         let a = Store(url: url)
         let item = a.add(title: "Persist me", group: "Home", date: "2026-10-16", onToday: true)!
         a.addGroup(named: "Garden")
+        a.addNote(text: "Remember this")
         a.toggleDone(item.id)
         a.saveNow()
 
@@ -141,5 +170,81 @@ import Testing
         #expect(b.items[0].done)
         #expect(b.items[0].date == "2026-10-16")
         #expect(b.groups.map(\.name).contains("Garden"))
+        #expect(b.notes.map(\.text) == ["Remember this"])
+    }
+
+    @Test func notesRejectBlankStayNewestAndDelete() {
+        let s = makeStore()
+        #expect(s.addNote(text: "   ") == nil)
+        #expect(s.addNote(text: "\n") == nil)
+        #expect(s.notes.isEmpty)
+        #expect(s.items.isEmpty)
+        #expect(s.todayOpen.isEmpty)
+        #expect(s.catchUpDeck.isEmpty)
+
+        #expect(s.addNote(text: "  first  ")?.text == "first")
+        let second = s.addNote(text: "second")!
+        #expect(s.notes.map(\.text) == ["second", "first"])
+        #expect(s.items.isEmpty)
+
+        s.deleteNote(second.id)
+        #expect(s.notes.map(\.text) == ["first"])
+        s.deleteNote(UUID())
+        #expect(s.notes.map(\.text) == ["first"])
+    }
+
+    @Test func restoreNotePutsItBackInTimeOrder() {
+        let s = makeStore()
+        let older = Note(text: "older", createdAt: Date(timeIntervalSince1970: 1))
+        let newer = Note(text: "newer", createdAt: Date(timeIntervalSince1970: 2))
+        s.restoreNote(older)
+        s.restoreNote(newer)
+        #expect(s.notes.map(\.text) == ["newer", "older"])
+        s.deleteNote(newer.id)
+        #expect(s.notes.map(\.text) == ["older"])
+        s.restoreNote(newer)
+        #expect(s.notes.map(\.text) == ["newer", "older"])
+        s.restoreNote(newer)
+        #expect(s.notes.filter { $0.id == newer.id }.count == 1)
+    }
+
+    @Test func missingNotesKeyKeepsItemsAndGroups() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let url = dir.appendingPathComponent("todos.json")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        // A version-1 file from before notes existed: items and groups, no notes key.
+        let json = """
+        {
+          "version": 1,
+          "items": [
+            {
+              "id": "11111111-1111-1111-1111-111111111111",
+              "title": "Keep me",
+              "group": "Home",
+              "date": "2026-10-16",
+              "onToday": true,
+              "done": false,
+              "createdAt": "2026-10-15T12:00:00Z",
+              "doneAt": null
+            }
+          ],
+          "groups": [
+            {"name": "Work", "colorHex": "#2B59C3"},
+            {"name": "Home", "colorHex": "#0F766E"}
+          ]
+        }
+        """
+        try Data(json.utf8).write(to: url)
+
+        let s = Store(url: url)
+        #expect(s.items.map(\.title) == ["Keep me"])
+        #expect(s.items[0].group == "Home")
+        #expect(s.items[0].date == "2026-10-16")
+        #expect(s.items[0].onToday)
+        #expect(!s.items[0].done)
+        #expect(s.groups.map(\.name) == ["Work", "Home"])
+        #expect(s.notes.isEmpty)
     }
 }
