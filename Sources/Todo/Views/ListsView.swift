@@ -56,7 +56,7 @@ struct ListsView: View {
         var cols = store.groups.map { g in
             Column(id: g.name, name: g.name, hex: g.colorHex, items: open.filter { $0.group == g.name })
         }
-        cols.append(Column(id: "", name: "No group", hex: "#B9BFC9", items: open.filter { $0.group == nil }))
+        cols.append(Column(id: "", name: "No group", hex: Theme.ungroupedHex, items: open.filter { $0.group == nil }))
         return cols
     }
 
@@ -441,7 +441,7 @@ struct ListsView: View {
     // MARK: Move to group
 
     private func groupChoices(for item: TodoItem) -> [GroupChoice] {
-        [GroupChoice(label: "No group", value: nil, hex: "#B9BFC9", isCurrent: item.group == nil)]
+        [GroupChoice(label: "No group", value: nil, hex: Theme.ungroupedHex, isCurrent: item.group == nil)]
             + store.groups.map {
                 GroupChoice(label: $0.name, value: $0.name, hex: $0.colorHex, isCurrent: item.group == $0.name)
             }

@@ -78,7 +78,7 @@ public final class Store: ObservableObject {
     public func item(_ id: UUID) -> TodoItem? { items.first { $0.id == id } }
 
     public func color(forGroup name: String?) -> String {
-        guard let name, let g = groups.first(where: { $0.name == name }) else { return "#B9BFC9" }
+        guard let name, let g = groups.first(where: { $0.name == name }) else { return TodoGroup.ungroupedHex }
         return g.colorHex
     }
 

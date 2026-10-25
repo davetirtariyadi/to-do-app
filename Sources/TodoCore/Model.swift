@@ -56,6 +56,9 @@ public struct TodoGroup: Codable, Identifiable, Equatable, Hashable {
         self.colorHex = colorHex
     }
 
+    /// Dot colour for a to-do that has no group.
+    public static let ungroupedHex = "#A39888"
+
     public static let defaults: [TodoGroup] = [
         TodoGroup(name: "Work", colorHex: "#2B59C3"),
         TodoGroup(name: "Home", colorHex: "#0F766E"),
