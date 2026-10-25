@@ -28,13 +28,20 @@ struct ViewPickerView: View {
             Row(icon: "circle.grid.2x2", title: "Groups", subtitle: "Rename, recolour, reorder, delete", key: "G") {
                 state.go(.groups)
             },
+            Row(icon: "note.text", title: "Notes", subtitle: noteSubtitle, key: "N") {
+                state.go(.notes)
+            },
         ]
+    }
+
+    private var noteSubtitle: String {
+        store.notes.count == 1 ? "1 note" : "\(store.notes.count) notes"
     }
 
     var body: some View {
         let rows = rows
         VStack(spacing: 0) {
-            HeaderBar(onBack: { state.goHome(highlight: 2) }) {
+            HeaderBar(onBack: { state.goHome(highlight: 3) }) {
                 Text("View").font(.system(size: 14, weight: .semibold))
             } trailing: {
                 HintText(text: "↑↓ move · ⏎ open · Esc back")
@@ -56,7 +63,7 @@ struct ViewPickerView: View {
             case .upArrow: index = (index + n - 1) % n; return .handled
             case .downArrow: index = (index + 1) % n; return .handled
             case .return, .space: rows[index].open(); return .handled
-            case .escape: state.goHome(highlight: 2); return .handled
+            case .escape: state.goHome(highlight: 3); return .handled
             default: break
             }
             let ch = press.characters.uppercased()

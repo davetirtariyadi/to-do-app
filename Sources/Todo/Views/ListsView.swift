@@ -2,7 +2,8 @@ import SwiftUI
 import TodoCore
 
 /// Today / All / Board. A highlighted cursor row moves with ↑↓; Space marks
-/// done and T toggles Today, so you never need to Tab through rows.
+/// done, T toggles Today, R renames and ⌫ deletes, so you never need to Tab
+/// through rows.
 struct ListsView: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var store: Store
@@ -12,6 +13,13 @@ struct ListsView: View {
     /// The "Move to group" card opened with G.
     @Local private var chooserOpen = false
     @Local private var chooserActive = 0
+    @Local private var renaming: UUID? = nil
+    @Local private var draft = ""
+    @Local private var error = ""
+    @Local private var deleting: UUID? = nil
+    @FocusState private var fieldFocused: Bool
+
+    private var editing: Bool { renaming != nil }
 
     private struct Section: Identifiable {
         let id: String
@@ -84,10 +92,20 @@ struct ListsView: View {
                     if let target { withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(target) } }
                 }
             }
+
+            if !error.isEmpty {
+                Text(error)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.overdue)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 4)
+            }
+
             HStack {
-                HintText(text: state.listTab == .board
-                         ? "↑↓←→ move · Space done · T today · G group · Esc"
-                         : "↑↓ move · Space done · T today · G group · Esc home")
+                HintText(text: editing
+                         ? "⏎ save · Esc cancel"
+                         : "↑↓ move · Space done · T today · G group · R rename · ⌫ delete · Esc")
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 12)
@@ -96,7 +114,12 @@ struct ListsView: View {
             .overlay(alignment: .top) { Rectangle().fill(Theme.line).frame(height: 1) }
         }
         .overlay {
-            if chooserOpen, let id = currentId, let item = store.item(id) {
+            if let id = deleting, let item = store.item(id) {
+                ZStack {
+                    Theme.scrim
+                    deleteCard(item)
+                }
+            } else if chooserOpen, let id = currentId, let item = store.item(id) {
                 ZStack {
                     Theme.scrim.onTapGesture { chooserOpen = false }
                     GroupChoiceCard(
@@ -112,12 +135,17 @@ struct ListsView: View {
         }
         .grabsFocus()
         .onKeyPress(phases: .down) { handle($0) }
+        .onChange(of: state.escapeTick) { escape() }
+        .onChange(of: fieldFocused) { _, focused in
+            // Clicking away from the title field saves it, like pressing Enter.
+            if !focused && editing { commitEdit() }
+        }
     }
 
     // MARK: Header
 
     private var header: some View {
-        HeaderBar(onBack: { state.goHome(highlight: 2) }) {
+        HeaderBar(onBack: { state.goHome(highlight: 3) }) {
             HStack(spacing: 2) {
                 ForEach(ListTab.allCases, id: \.self) { tab in
                     let on = tab == state.listTab
@@ -186,6 +214,8 @@ struct ListsView: View {
 
     private func row(_ item: TodoItem, isCursor: Bool) -> some View {
         let kind = DayKey.kind(item.date, today: store.today)
+        // Only the row you're on grows. Rename stays a single field.
+        let expands = isCursor && renaming != item.id
         return HStack(alignment: .top, spacing: 2) {
             Button { select(item.id); store.toggleDone(item.id) } label: {
                 CheckCircle(done: item.done).frame(width: 30, height: 30).contentShape(Rectangle())
@@ -201,27 +231,61 @@ struct ListsView: View {
                 .padding(.trailing, 2)
                 .onTapGesture { select(item.id); openChooser() }
                 .help("\(item.group ?? "No group") — click or press G to change")
-            Text(item.title)
-                .font(.system(size: 13.5))
-                .strikethrough(item.done)
-                .foregroundStyle(item.done ? Theme.doneInk : Theme.ink)
-                .lineLimit(isCursor ? nil : 1)
-                .truncationMode(.tail)
-                .fixedSize(horizontal: false, vertical: isCursor)
-                .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+            if renaming == item.id {
+                titleField(size: 13.5)
+                    .frame(height: 36)
+            } else {
+                Text(item.title)
+                    .font(.system(size: 13.5))
+                    .strikethrough(item.done)
+                    .foregroundStyle(item.done ? Theme.doneInk : Theme.ink)
+                    .lineLimit(expands ? nil : 1)
+                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: expands)
+                    .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+            }
             Text(DayKey.shortLabel(item.date, today: store.today))
                 .font(Theme.mono(11, kind == .overdue || kind == .today ? .medium : .regular))
                 .foregroundStyle(Theme.dateColor(kind))
                 .frame(height: 36)
             sunButton(item, size: 28)
                 .frame(height: 36)
+            iconButton("pencil", help: "Rename (R)") { select(item.id); startRename() }
+                .frame(height: 36)
+            iconButton("trash", help: "Delete (⌫)") { select(item.id); startDelete() }
+                .frame(height: 36)
         }
         .padding(.trailing, 2)
-        .frame(height: isCursor ? nil : 36)
+        .frame(height: expands ? nil : 36)
         .background(RoundedRectangle(cornerRadius: 7).fill(isCursor ? Theme.cursor : .clear))
         .contentShape(Rectangle())
         .onTapGesture { select(item.id) }
-        .animation(.easeOut(duration: 0.12), value: isCursor)
+        .animation(.easeOut(duration: 0.12), value: expands)
+    }
+
+    private func titleField(size: CGFloat) -> some View {
+        TextField("To-do", text: $draft)
+            .textFieldStyle(.plain)
+            .font(.system(size: size))
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 28)
+            .background(RoundedRectangle(cornerRadius: 6).fill(Theme.surface))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.accent, lineWidth: 1.5))
+            .focused($fieldFocused)
+            .onSubmit(commitEdit)
+    }
+
+    private func iconButton(_ icon: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Theme.faint)
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 
     private func sunButton(_ item: TodoItem, size: CGFloat) -> some View {
@@ -290,15 +354,23 @@ struct ListsView: View {
             }
             .buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.title)
-                    .font(.system(size: 12.5))
-                    .lineLimit(isCursor ? nil : 2)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack {
+                if renaming == item.id {
+                    titleField(size: 12.5)
+                } else {
+                    Text(item.title)
+                        .font(.system(size: 12.5))
+                        .lineLimit(isCursor ? nil : 2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                HStack(spacing: 0) {
                     Text(DayKey.shortLabel(item.date, today: store.today))
                         .font(Theme.mono(10.5, kind == .overdue ? .medium : .regular))
                         .foregroundStyle(Theme.dateColor(kind))
                     Spacer(minLength: 0)
+                    if isCursor {
+                        iconButton("pencil", help: "Rename (R)") { select(item.id); startRename() }
+                        iconButton("trash", help: "Delete (⌫)") { select(item.id); startDelete() }
+                    }
                     sunButton(item, size: 24)
                 }
             }
@@ -321,6 +393,12 @@ struct ListsView: View {
     }
 
     private func switchTab(_ tab: ListTab) {
+        if editing {
+            commitEdit()
+            if editing { return }
+        }
+        deleting = nil
+        chooserOpen = false
         state.listTab = tab
         cursor = nil
         emptyColumn = nil
@@ -374,7 +452,7 @@ struct ListsView: View {
     }
 
     private func openChooser() {
-        guard let id = currentId, let item = store.item(id) else { return }
+        guard !editing, let id = currentId, let item = store.item(id) else { return }
         chooserActive = groupChoices(for: item).firstIndex { $0.isCurrent } ?? 0
         chooserOpen = true
     }
@@ -388,8 +466,96 @@ struct ListsView: View {
         store.setGroup(id, choices[index].value)
     }
 
+    // MARK: Rename / delete
+
+    @ViewBuilder private func deleteCard(_ item: TodoItem) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Delete “\(item.title)”?")
+                .font(.system(size: 13.5, weight: .semibold))
+                .fixedSize(horizontal: false, vertical: true)
+            HintText(text: "⏎ delete · Esc cancel")
+        }
+        .padding(14)
+        .frame(width: 260, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12).fill(Theme.surface)
+                .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
+        )
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.stroke))
+        .onTapGesture { confirmDelete() }
+    }
+
+    private func startRename() {
+        guard !editing, let id = currentId, let item = store.item(id) else { return }
+        chooserOpen = false
+        deleting = nil
+        draft = item.title
+        error = ""
+        renaming = id
+        DispatchQueue.main.async { fieldFocused = true }
+    }
+
+    private func startDelete() {
+        guard !editing, let id = currentId else { return }
+        chooserOpen = false
+        error = ""
+        deleting = id
+    }
+
+    /// The deleted row disappears, so the cursor moves to its neighbour first,
+    /// the same way marking done does on the Board.
+    private func confirmDelete() {
+        guard let id = deleting else { return }
+        let f = flat
+        let i = f.firstIndex { $0.id == id } ?? cursorIndex
+        cursor = f.indices.contains(i + 1) ? f[i + 1].id : (i > 0 ? f[i - 1].id : nil)
+        emptyColumn = nil
+        store.delete(id)
+        deleting = nil
+    }
+
+    private func commitEdit() {
+        guard let id = renaming else { return }
+        if store.rename(id, to: draft) {
+            endEdit()
+            return
+        }
+        if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            error = "A to-do needs a title."
+            DispatchQueue.main.async { fieldFocused = true }
+            return
+        }
+        endEdit()
+    }
+
+    private func endEdit() {
+        renaming = nil
+        error = ""
+        state.requestFocus()
+    }
+
+    private func escape() {
+        if editing { endEdit() }
+        else if deleting != nil { deleting = nil }
+        else if chooserOpen { chooserOpen = false }
+        else { state.goHome(highlight: 3) }
+    }
+
     private func handle(_ press: KeyPress) -> KeyPress.Result {
+        // While a title field is open, let it have every key except Esc.
+        if editing {
+            if press.key == .escape { escape(); return .handled }
+            return .ignored
+        }
         if press.modifiers.contains(.command) { return .ignored }
+        if deleting != nil {
+            switch press.key {
+            case .return, .space: confirmDelete()
+            case .escape: escape()
+            default: break
+            }
+            return .handled
+        }
         if chooserOpen {
             if let id = currentId, let item = store.item(id) {
                 var active = chooserActive
@@ -400,13 +566,14 @@ struct ListsView: View {
             }
             switch press.key {
             case .return, .space: applyGroup(chooserActive)
-            case .escape: chooserOpen = false
+            case .escape: escape()
             default: break
             }
             return .handled
         }
+        if press.isBackspace { startDelete(); return .handled }
         switch press.key {
-        case .escape: state.goHome(highlight: 2); return .handled
+        case .escape: escape(); return .handled
         case .upArrow: move(-1); return .handled
         case .downArrow: move(1); return .handled
         case .leftArrow where state.listTab == .board: jumpColumn(-1); return .handled
@@ -425,6 +592,7 @@ struct ListsView: View {
         case "x": toggleDoneAtCursor()
         case "t": if let id = currentId { cursor = id; store.toggleToday(id) }
         case "g": openChooser()
+        case "r": startRename()
         default: return .ignored
         }
         return .handled

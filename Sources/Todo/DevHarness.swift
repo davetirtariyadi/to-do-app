@@ -87,6 +87,16 @@ enum DevHarness {
             .type("g"),
             .key(ret, "\r"),
             .snap("20-moved"),
+            // Brain dump, then the notes list. The Add walkthrough above is unchanged.
+            .key(esc, "\u{1B}"),
+            .type("b"),
+            .snap("21-dump"),
+            .type("Call mom"),
+            .key(ret, "\r"),
+            .snap("22-noted"),
+            .type("v"),
+            .type("n"),
+            .snap("23-notes"),
         ]
     }
 

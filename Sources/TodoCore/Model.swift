@@ -33,6 +33,19 @@ public struct TodoItem: Codable, Identifiable, Equatable, Hashable {
     }
 }
 
+/// A one-line thought. Not a to-do: it stays out of Today, the to-do catch-up deck, and the menu-bar count.
+public struct Note: Codable, Identifiable, Equatable, Hashable {
+    public var id: UUID
+    public var text: String
+    public var createdAt: Date
+
+    public init(id: UUID = UUID(), text: String, createdAt: Date = Date()) {
+        self.id = id
+        self.text = text
+        self.createdAt = createdAt
+    }
+}
+
 public struct TodoGroup: Codable, Identifiable, Equatable, Hashable {
     public var name: String
     public var colorHex: String
@@ -94,4 +107,34 @@ struct StoreFile: Codable {
     var version: Int = 1
     var items: [TodoItem]
     var groups: [TodoGroup]
+    var notes: [Note]
+
+    init(version: Int = 1, items: [TodoItem], groups: [TodoGroup], notes: [Note] = []) {
+        self.version = version
+        self.items = items
+        self.groups = groups
+        self.notes = notes
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, items, groups, notes
+    }
+
+    /// A file written before notes existed has no `notes` key. Failing the whole
+    /// decode would drop every to-do, so a missing key means an empty list.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        items = try c.decode([TodoItem].self, forKey: .items)
+        groups = try c.decode([TodoGroup].self, forKey: .groups)
+        notes = try c.decodeIfPresent([Note].self, forKey: .notes) ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(version, forKey: .version)
+        try c.encode(items, forKey: .items)
+        try c.encode(groups, forKey: .groups)
+        try c.encode(notes, forKey: .notes)
+    }
 }

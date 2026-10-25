@@ -27,6 +27,10 @@ struct AddView: View {
     @Local private var date: String? = nil
     @Local private var onToday = false
     @Local private var note = ""
+    /// Set when this Add was opened from a note. Cleared once that note is deleted.
+    @Local private var promotingNote: UUID? = nil
+    /// Where to go back when this Add came from a note. Nil means Home.
+    @Local private var backTo: Screen? = nil
 
     @Local private var groupOpen = false
     @Local private var groupActive = 0
@@ -54,7 +58,7 @@ struct AddView: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             VStack(spacing: 0) {
-                HeaderBar(onBack: { state.goHome(highlight: 0) }) {
+                HeaderBar(onBack: { leave() }) {
                     Text("Add to-do").font(.system(size: 14, weight: .semibold))
                 } trailing: {
                     HintText(text: "Esc back")
@@ -95,7 +99,14 @@ struct AddView: View {
             }
         }
         .onKeyPress(phases: .down) { handleContainer($0) }
-        .onAppear { DispatchQueue.main.async { focus = .title } }
+        .onAppear {
+            if let draft = state.consumeAddDraft() {
+                title = draft.title
+                promotingNote = draft.noteID
+                backTo = draft.returnTo
+            }
+            DispatchQueue.main.async { focus = .title }
+        }
         .onChange(of: state.focusTick) { focus = .title }
         .onChange(of: state.escapeTick) { handleEscape() }
         .onChange(of: focus) { old, new in
@@ -392,7 +403,16 @@ struct AddView: View {
         if calOpen { calOpen = false; focus = .date }
         else if groupOpen { groupOpen = false }
         else if newGroupMode { newGroupMode = false; focus = .group }
-        else { state.goHome(highlight: 0) }
+        else { leave() }
+    }
+
+    /// A note's Add returns to the list it came from. A normal Add returns home.
+    private func leave() {
+        if let backTo {
+            state.go(backTo)
+        } else {
+            state.goHome(highlight: 0)
+        }
     }
 
     private func submit(stay: Bool) {
@@ -401,6 +421,10 @@ struct AddView: View {
             NSSound.beep()
             focus = .title
             return
+        }
+        if let id = promotingNote {
+            store.deleteNote(id)
+            promotingNote = nil
         }
         var bits: [String] = []
         if let g = item.group { bits.append(g) }
@@ -419,7 +443,7 @@ struct AddView: View {
             focus = .title
         } else {
             state.showToast(message)
-            state.goHome(highlight: 0)
+            leave()
         }
     }
 }

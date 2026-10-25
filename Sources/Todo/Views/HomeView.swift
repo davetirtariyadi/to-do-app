@@ -71,12 +71,12 @@ struct HomeView: View {
     private struct Option { let title, subtitle, key: String }
 
     var body: some View {
-        let deck = store.catchUpDeck.count
         let done = store.todayDone.count
         let total = store.todayOpen.count + done
         let options = [
             Option(title: "Add to-do", subtitle: "What, group, date", key: "A"),
-            Option(title: "Catch up", subtitle: deck > 0 ? "\(deck) to review" : "All clear", key: "C"),
+            Option(title: "Brain dump", subtitle: dumpSubtitle, key: "B"),
+            Option(title: "Catch up", subtitle: catchUpSubtitle, key: "C"),
             Option(title: "View", subtitle: "Today · All · Board · Groups", key: "V"),
         ]
 
@@ -200,11 +200,30 @@ struct HomeView: View {
         }
     }
 
+    private var catchUpSubtitle: String {
+        let todos = store.catchUpDeck.count
+        let notes = store.notes.count
+        if notes == 0 { return todos > 0 ? "\(todos) to review" : "All clear" }
+        let noteLabel = notes == 1 ? "1 note" : "\(notes) notes"
+        if todos == 0 { return noteLabel }
+        let todoLabel = todos == 1 ? "1 to-do" : "\(todos) to-dos"
+        return "\(todoLabel) · \(noteLabel)"
+    }
+
+    private var dumpSubtitle: String {
+        switch store.notes.count {
+        case 0: return "A quick thought"
+        case 1: return "1 note"
+        default: return "\(store.notes.count) notes"
+        }
+    }
+
     private func activate(_ i: Int) {
         state.homeIndex = i
         switch i {
-        case 0: state.go(.add)
-        case 1: state.go(.catchUp)
+        case 0: state.openAdd()
+        case 1: state.go(.dump)
+        case 2: state.go(.catchUp)
         default: state.go(.view)
         }
     }
@@ -212,16 +231,17 @@ struct HomeView: View {
     private func handle(_ press: KeyPress) -> KeyPress.Result {
         if press.modifiers.contains(.command) { return .ignored }
         switch press.key {
-        case .upArrow: state.homeIndex = (state.homeIndex + 2) % 3; return .handled
-        case .downArrow: state.homeIndex = (state.homeIndex + 1) % 3; return .handled
+        case .upArrow: state.homeIndex = (state.homeIndex + 3) % 4; return .handled
+        case .downArrow: state.homeIndex = (state.homeIndex + 1) % 4; return .handled
         case .return, .space: activate(state.homeIndex); return .handled
         case .escape: controller.hide(); return .handled
         default: break
         }
         switch press.characters.lowercased() {
         case "a": activate(0)
-        case "c": activate(1)
-        case "v": activate(2)
+        case "b": activate(1)
+        case "c": activate(2)
+        case "v": activate(3)
         default: return .ignored
         }
         return .handled
@@ -282,8 +302,9 @@ struct ActionGlyph: View {
             let t = reduceMotion ? 1.0 : ctx.date.timeIntervalSinceReferenceDate
             ZStack {
                 layer(0) { AddGlyph(t: t) }
-                layer(1) { CatchUpGlyph(t: t) }
-                layer(2) { ViewGlyph(t: t) }
+                layer(1) { DumpGlyph(t: t) }
+                layer(2) { CatchUpGlyph(t: t) }
+                layer(3) { ViewGlyph(t: t) }
             }
         }
         .animation(.timingCurve(0.2, 0.7, 0.2, 1, duration: 0.5), value: index)
@@ -320,6 +341,21 @@ struct AddGlyph: View {
                 .opacity(fadeIn * (1 - spread))
                 .offset(y: y)
         }
+    }
+}
+
+/// A short line writes itself, then fades.
+struct DumpGlyph: View {
+    let t: Double
+    var body: some View {
+        let p = phase(t, 2.8)
+        let draw = p < 0.55 ? p / 0.55 : 1
+        let fade = p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1
+        Capsule()
+            .fill(Theme.accent)
+            .frame(width: 28 * draw, height: 2)
+            .opacity(fade)
+            .frame(width: 28, alignment: .leading)
     }
 }
 

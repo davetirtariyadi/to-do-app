@@ -29,7 +29,7 @@ struct GroupsView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                HeaderBar(onBack: { state.goHome(highlight: 2) }) {
+                HeaderBar(onBack: { state.goHome(highlight: 3) }) {
                     Text("Groups").font(.system(size: 14, weight: .semibold))
                 } trailing: {
                     Text("\(store.groups.count) groups")
@@ -346,7 +346,7 @@ struct GroupsView: View {
     private func escape() {
         if editing { endEdit() }
         else if deleting != nil { deleting = nil }
-        else { state.goHome(highlight: 2) }
+        else { state.goHome(highlight: 3) }
     }
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
@@ -384,7 +384,7 @@ struct GroupsView: View {
         case .upArrow: cursor = max(0, cursor - 1); return .handled
         case .downArrow: cursor = min(max(count - 1, 0), cursor + 1); return .handled
         case .return: startRename(); return .handled
-        case .escape: state.goHome(highlight: 2); return .handled
+        case .escape: state.goHome(highlight: 3); return .handled
         default: break
         }
         switch press.characters.lowercased() {

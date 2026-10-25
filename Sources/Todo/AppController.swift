@@ -6,7 +6,7 @@ import TodoCore
 
 /// Owns the store, the window and the global shortcuts.
 final class AppController: ObservableObject {
-    static let windowSize = NSSize(width: 400, height: 440)
+    static let windowSize = NSSize(width: 400, height: 508)
 
     let store: Store
     let state = AppState()
@@ -52,7 +52,7 @@ final class AppController: ObservableObject {
         panel.setPinned(pinned)
         panel.onEscape = { [weak self] in self?.handleEscape() }
         if !panel.setFrameUsingName("TodoPanel") { panel.placeDefault() }
-        // A frame saved before the panel grew would stay 308pt and clip the home.
+        // A frame saved before the panel grew would stay short and clip the home.
         // Keep the top edge so a window parked under the menu bar does not slide off.
         var frame = panel.frame
         let top = frame.maxY
@@ -69,12 +69,15 @@ final class AppController: ObservableObject {
         panel.setFrameAutosaveName("TodoPanel")
         self.panel = panel
 
-        // ⌃⌘Space shows/hides, ⌃⌥N jumps straight to Add.
+        // ⌃⌘Space shows/hides, ⌃⌥N jumps straight to Add, ⌃⌥B to Brain dump.
         HotKeyCenter.shared.register(keyCode: kVK_Space, modifiers: controlKey | cmdKey) { [weak self] in
             self?.toggle()
         }
         HotKeyCenter.shared.register(keyCode: kVK_ANSI_N, modifiers: controlKey | optionKey) { [weak self] in
             self?.show(.add)
+        }
+        HotKeyCenter.shared.register(keyCode: kVK_ANSI_B, modifiers: controlKey | optionKey) { [weak self] in
+            self?.show(.dump)
         }
 
         show()
@@ -85,7 +88,11 @@ final class AppController: ObservableObject {
 
     func show(_ screen: Screen? = nil) {
         guard let panel else { return }
-        if let screen { state.go(screen) }
+        if screen == .add {
+            state.openAdd()
+        } else if let screen {
+            state.go(screen)
+        }
         NSApp.activate()
         panel.makeKeyAndOrderFront(nil)
         panel.invalidateShadow()
@@ -101,16 +108,16 @@ final class AppController: ObservableObject {
         if panel.isVisible && panel.isKeyWindow { hide() } else { show() }
     }
 
-    /// Esc that no view consumed: Add and Groups decide for themselves (they
-    /// may just close a picker or cancel an edit); elsewhere go home, and on
-    /// Home hide the window.
+    /// Esc that no view consumed: Add, Groups, lists and Notes decide for
+    /// themselves (they may just close a picker or cancel an edit); elsewhere
+    /// go home, and on Home hide the window.
     func handleEscape() {
         switch state.screen {
-        case .add, .groups: state.escapePressed()
+        case .add, .groups, .list, .notes: state.escapePressed()
         case .home: hide()
-        case .view: state.goHome(highlight: 2)
-        case .list: state.goHome(highlight: 2)
-        case .catchUp: state.goHome(highlight: 1)
+        case .view: state.goHome(highlight: 3)
+        case .catchUp: state.goHome(highlight: 2)
+        case .dump: state.goHome(highlight: 1)
         }
     }
 
@@ -137,6 +144,8 @@ struct RootView: View {
             case .list: ListsView()
             case .catchUp: CatchUpView()
             case .groups: GroupsView()
+            case .dump: DumpView()
+            case .notes: NotesView()
             }
         }
         .frame(width: AppController.windowSize.width, height: AppController.windowSize.height)

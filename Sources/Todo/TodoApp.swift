@@ -56,6 +56,7 @@ struct MenuContent: View {
     var body: some View {
         Button("Show Todo   ⌃⌘Space") { controller.show() }
         Button("Add to-do…   ⌃⌥N") { controller.show(.add) }
+        Button("Brain dump…   ⌃⌥B") { controller.show(.dump) }
         Button("Catch up (\(store.catchUpDeck.count))") { controller.show(.catchUp) }
         Button("Manage groups…") { controller.show(.groups) }
         Divider()
