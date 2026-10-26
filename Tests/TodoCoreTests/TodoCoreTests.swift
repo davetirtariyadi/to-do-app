@@ -58,6 +58,70 @@ import Testing
         #expect(s.items.isEmpty)
     }
 
+    @Test func todayProgressDropsCompletionsFromEarlierDays() {
+        let s = Store(url: nil)
+        let day = DayKey.todayKey()
+        s.todayProvider = { day }
+
+        let finished = s.add(title: "done today", group: nil, date: nil, onToday: true)!
+        let stillOpen = s.add(title: "still open", group: nil, date: nil, onToday: true)!
+        s.setDone(finished.id, true)
+        s.rollToday()
+
+        #expect(s.todayDone.map(\.title) == ["done today"])
+        #expect(s.todayOpen.map(\.title) == ["still open"])
+
+        s.todayProvider = { DayKey.addDays(day, 1) }
+        #expect(s.todayDone.isEmpty)
+        #expect(s.item(finished.id)?.onToday == true)
+
+        s.rollToday()
+        #expect(s.todayDone.isEmpty)
+        #expect(s.todayOpen.map(\.title) == ["still open"])
+        #expect(s.item(finished.id)?.done == true)
+        #expect(s.item(finished.id)?.onToday == false)
+        #expect(s.item(stillOpen.id)?.onToday == true)
+    }
+
+    @Test func launchClearsTodayPinOnItemsFinishedEarlier() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let url = dir.appendingPathComponent("todos.json")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        let json = """
+        {
+          "version": 1,
+          "items": [
+            {
+              "id": "22222222-2222-2222-2222-222222222222",
+              "title": "Finished yesterday",
+              "group": null,
+              "date": null,
+              "onToday": true,
+              "done": true,
+              "createdAt": "2020-01-01T12:00:00Z",
+              "doneAt": "2020-01-01T18:00:00Z"
+            }
+          ],
+          "groups": [
+            {"name": "Work", "colorHex": "#2B59C3"},
+            {"name": "Home", "colorHex": "#0F766E"},
+            {"name": "Errands", "colorHex": "#7E3AF2"}
+          ],
+          "notes": []
+        }
+        """
+        try Data(json.utf8).write(to: url)
+
+        let s = Store(url: url)
+        s.saveNow()
+        #expect(s.items[0].done)
+        #expect(!s.items[0].onToday)
+        #expect(s.todayDone.isEmpty)
+        #expect(s.todayOpen.isEmpty)
+    }
+
     @Test func catchUpDeckIsTodayPlusDue() {
         let s = makeStore()
         s.add(title: "on today", group: nil, date: nil, onToday: true)

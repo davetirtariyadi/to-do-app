@@ -12,6 +12,7 @@ public final class Store: ObservableObject {
 
     private let url: URL?
     private var pendingSave: DispatchWorkItem?
+    private var dayObserver: NSObjectProtocol?
     /// Injected so tests can pin "today".
     public var todayProvider: () -> String = { DayKey.todayKey() }
 
@@ -28,6 +29,19 @@ public final class Store: ObservableObject {
             groups = TodoGroup.defaults
             notes = []
         }
+        // A launch after midnight should not keep yesterday's finished tasks on Today.
+        rollToday()
+        dayObserver = NotificationCenter.default.addObserver(
+            forName: .NSCalendarDayChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.rollToday()
+        }
+    }
+
+    deinit {
+        if let dayObserver { NotificationCenter.default.removeObserver(dayObserver) }
     }
 
     /// Bundle ID of the installed app built from main by scripts/make-app.sh.
@@ -61,7 +75,30 @@ public final class Store: ObservableObject {
     public var open: [TodoItem] { Self.sorted(items.filter { !$0.done }) }
     public var done: [TodoItem] { Self.sorted(items.filter { $0.done }) }
     public var todayOpen: [TodoItem] { open.filter { $0.onToday } }
-    public var todayDone: [TodoItem] { done.filter { $0.onToday } }
+    /// Finished items count toward Today only on the calendar day they were completed.
+    public var todayDone: [TodoItem] {
+        let day = today
+        return done.filter { $0.onToday && Self.finished(on: day, $0) }
+    }
+
+    /// Drops Today from items finished on an earlier day. Open items stay pinned,
+    /// so unfinished work carries over and the progress counter starts again.
+    public func rollToday() {
+        let day = today
+        var changed = false
+        for i in items.indices where items[i].done && items[i].onToday && !Self.finished(on: day, items[i]) {
+            items[i].onToday = false
+            changed = true
+        }
+        if changed { scheduleSave() }
+    }
+
+    /// `doneAt` is an absolute timestamp; the day key uses the local calendar,
+    /// same as `today`. A missing timestamp is not "today".
+    private static func finished(on day: String, _ item: TodoItem) -> Bool {
+        guard let doneAt = item.doneAt else { return false }
+        return DayKey.todayKey(now: doneAt) == day
+    }
 
     /// Open items that are due (or overdue) but not on Today's list.
     public var dueNotOnToday: [TodoItem] {
